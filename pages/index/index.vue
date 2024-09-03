@@ -9,11 +9,12 @@
 		<view class="countDown">
 			<view class="btns">
 				<u-button v-if="type=='over'" text="重来" :plain="true" type="warning" @click="reset"></u-button>
-				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="success" @click="start"></u-button>
+				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="success"
+					@click="start"></u-button>
 				<u-button v-if="type=='start'" text="暂停" :plain="true" type="error" @click="pause"></u-button>
 			</view>
 			<view class="timeText">倒计时</view>
-			<u-count-down ref="countDown" :time="2*60* 1000" format="mm:ss:SSS" :autoStart="false" millisecond
+			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond
 				@change="onChange" @finish="onFinish">
 				<view class="time">
 					<view class="time__custom seconds">
@@ -55,8 +56,12 @@
 				<view class="item ">错误字数<text class="error">{{ result.len}}</text></view>
 			</view>
 			<view class="btns">
-				<u-button text="重来" :plain="true" type="warning" @click="reset"></u-button>
-				<u-button text="换一首" :plain="true" size="normal" type="success" @click="init"></u-button>
+				<view class="btn">
+					<u-button text="重来" :plain="true" type="warning" @click="reset"></u-button>
+				</view>
+				<view class="btn">
+					<u-button text="换一首" :plain="true" size="normal" type="success" @click="changeOne"></u-button>
+				</view>
 			</view>
 		</view>
 
@@ -82,12 +87,15 @@
 		data() {
 			return {
 				Data,
-				type: 'start',
+				time: 2 * 60 * 1000,
+				// time: 2 * 1000,
+				type: 'pause',
 				isTitle: false,
 				isAuthor: false,
 				isOver: false,
 				isSetWord: false,
 				poem: {},
+				arrEmpty: [],
 				poemShuffle: [],
 				poemWordCorrect: [],
 				poemWordWrite: [],
@@ -96,7 +104,7 @@
 				poemWordShuffleCla: [],
 				poemWordError: [],
 				result: {
-					len: 0
+					len: '-'
 				},
 				word: '',
 				wordLen: 0,
@@ -143,8 +151,9 @@
 					arrCla
 				} = this.setArr(poemWord)
 
+				this.arrEmpty = this.deepClone2DArray(arrEmpty)
 				this.poemWordCorrect = arr
-				this.poemWordWrite = arrEmpty
+				this.poemWordWrite = this.deepClone2DArray(arrEmpty)
 				this.poemWordError = arrError
 				this.poemWordWriteCla = arrCla
 				this.shuffleWord()
@@ -156,7 +165,6 @@
 				if (this.poemShuffle.length == Data.poem.length) {
 					this.poemShuffle = []
 				}
-				console.log(shuffle, this.poemShuffle);
 				while (true) {
 					if (this.poemShuffle.includes(shuffle)) {
 						shuffle = uni.$u.random(0, Data.poem.length - 1)
@@ -167,8 +175,14 @@
 				this.poemShuffle.push(shuffle)
 				return shuffle
 			},
+			deepClone2DArray(arr) {
+				return arr.map(subArray => {
+					return [...subArray];
+				});
+			},
 			// 随机文字
 			shuffleWord() {
+				this.poemWordWrite = this.deepClone2DArray(this.arrEmpty)
 				this.focus = '0-0'
 				let wordArr = this.poemWordCorrect + ''
 				wordArr = wordArr.split(',');
@@ -192,6 +206,7 @@
 				let arrCla = []
 				str = str.replace(/\s/g, "");
 				let len = str.match(/。/g).length
+				this.result = {}
 				this.result.wordLen = str.match(/([^。，])/g).length
 				for (let i = 0; i < len; i++) {
 					arr.push([])
@@ -272,8 +287,8 @@
 				resultErrorArr = resultErrorArr.filter(item => item).map(item => item.wordError)
 				this.result = {
 					...this.result,
-					len: resultArr.length,
 					word: resultArr,
+					len: resultErrorArr.length,
 					wordError: resultErrorArr,
 				}
 				if (col < len) {
@@ -306,8 +321,18 @@
 			// 重置
 			reset() {
 				this.$refs.countDown.reset();
+				this.result = {
+					wordLen: this.result.wordLen
+				}
+
 				this.start()
 				this.shuffleWord()
+			},
+			// 换一首
+			changeOne() {
+				this.$refs.countDown.reset();
+				this.init()
+				this.start()
 			},
 			onChange(e) {
 				this.timeData = e
@@ -335,7 +360,6 @@
 				}
 				write += 1
 				error = write - success
-				console.log(dataResult, this.result.len);
 				uni.setStorageSync('dataResult', {
 					all,
 					write,
@@ -354,9 +378,7 @@
 		position: relative !important;
 		z-index: 100000000 !important;
 	} */
-	page {
-		background-color: #fffae8;
-	}
+
 
 	.index {
 
@@ -370,7 +392,7 @@
 
 			.title {
 				// text-align: center;
-				font-size: 28px;
+				font-size: 24px;
 				margin-top: 5rpx;
 				margin-bottom: 20rpx;
 				color: $poemTitle;
@@ -413,6 +435,7 @@
 		.countDown {
 			display: flex;
 			align-items: center;
+			margin-top: 10rpx;
 
 			.time {
 				display: flex;
@@ -503,8 +526,9 @@
 
 			.btns {
 				display: flex;
+				justify-content: space-around;
 
-				button {
+				.btn {
 					width: 250rpx;
 				}
 			}
@@ -533,47 +557,58 @@
 
 		@keyframes maskHide {
 			50% {
-				transform: rotate(180deg) scale(0.5);
+				top: 50%;
 			}
 
 			100% {
-				transform: rotate(360deg) scale(0);
+				top: 1500%;
+
+				display: none;
 			}
 		}
 
 		.wordBox {
 			display: flex;
 			position: fixed;
-			bottom: 50px;
+			bottom: 0px;
 			margin-bottom: 20rpx;
 			flex-wrap: wrap;
+			max-height: 450rpx;
+			overflow-y: auto;
+			/*  #ifdef   WEB */
+			margin-bottom: 60px;
 
+			/*  #endif  */
 			.mask {
 				position: absolute;
 				left: 0;
 				right: 0;
-				top: 0;
 				bottom: 0;
+				height: 100%;
 				border-radius: 20rpx;
 				background-color: $mask-bg;
 				display: flex;
 				align-items: center;
 				transition: all 300ms;
+				overflow: hidden;
+
+				backdrop-filter: blur(3px);
 
 				&.hide {
 					// animation: maskHide 500ms ease 1 forwards;
-					top: 150%;
+					height: 0;
 				}
 			}
 
 			.word {
-				font-size: 16px;
+				font-size: 40rpx;
 				padding: 10rpx 15rpx;
-				margin: 5rpx;
+				margin: 10rpx;
 				margin-bottom: 10rpx;
 				border-radius: 10rpx;
 				background-color: $poemWord-bg;
-				border: 1px solid $poemWord-border;
+				// border: 1px solid $poemWord-border;
+				box-shadow: #9398a7 0px 2px 2px 0px;
 
 				&.vanish {
 					animation: vanish 400ms ease 1 forwards;
