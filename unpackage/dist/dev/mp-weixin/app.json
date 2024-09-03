@@ -1,0 +1,35 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/index/index2",
+    "pages/week/index",
+    "pages/month/index"
+  ],
+  "subPackages": [],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "uni-app",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/day_n.png",
+        "selectedIconPath": "static/day_f.png"
+      },
+      {
+        "pagePath": "pages/week/index",
+        "iconPath": "static/week_n.png",
+        "selectedIconPath": "static/week_f.png"
+      },
+      {
+        "pagePath": "pages/month/index",
+        "iconPath": "static/month_n.png",
+        "selectedIconPath": "static/month_f.png"
+      }
+    ]
+  },
+  "usingComponents": {}
+}
