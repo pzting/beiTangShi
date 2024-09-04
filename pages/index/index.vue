@@ -9,12 +9,13 @@
 		<view class="countDown">
 			<view class="btns">
 				<u-button v-if="type=='over'" text="重来" :plain="true" type="warning" @click="reset"></u-button>
-				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="primary" @click="start"></u-button>
+				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="primary"
+					@click="start"></u-button>
 				<u-button v-if="type=='start'" text="暂停" :plain="true" type="error" @click="pause"></u-button>
 			</view>
 			<view class="timeText">倒计时</view>
-			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond @change="onChange"
-				@finish="onFinish">
+			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond
+				@change="onChange" @finish="onFinish">
 				<view class="time">
 					<view class="time__custom seconds">
 						<text class="time__custom__item">{{ timeData.minutes }}</text>
@@ -88,6 +89,8 @@
 		data() {
 			return {
 				Data,
+				// 临时存储，用于随机
+				DataPoemTemp: [],
 				poemStr,
 				poemList: uni.getStorageSync('poemList') || [],
 				time: 2 * 60 * 1000,
@@ -120,23 +123,16 @@
 			};
 		},
 		onLoad() {
-			// function setPoemObj(str) {
-			// 	let poemArr = str.split(/\s/g)
-			// 	let title = `《${poemArr[0]}》`
-			// 	let author = poemArr[1]
-			// 	let poemWord = poemArr[2]
-			// 	return {
-			// 		title,
-			// 		author,
-			// 		poemWord
-			// 	}
-			// }
 			let poemArr = poemStr.map(item => setPoemObj(item))
 			Data.poem = [...Data.poem, ...this.poemList, ...poemArr]
+			this.DataPoemTemp = [...Data.poem]
 
 		},
 		onReady() {
-			this.init()
+			let me = this
+			setTimeout(function() {
+				me.init()
+			}, 10);
 		},
 		onShow() {
 			// Data.poem = [...Data.poem, this.poemList]
@@ -153,12 +149,12 @@
 		methods: {
 			//初始化
 			init() {
-				console.log('init');
 				this.isTitle = true;
 				this.isAuthor = true;
 				// 随机
 				let shuffle = this.shufflePoem()
-				this.poem = Data.poem[shuffle]
+				this.poem = this.DataPoemTemp[shuffle]
+				this.DataPoemTemp.splice(shuffle, 1)
 				let poemWord = this.poem.poemWord
 
 				let {
@@ -177,18 +173,22 @@
 			},
 			// 随机诗
 			shufflePoem() {
-				let shuffle = uni.$u.random(0, Data.poem.length - 1)
+				let shuffle = uni.$u.random(0, this.DataPoemTemp.length - 1)
 
+				// 随机数量相等
 				if (this.poemShuffle.length == Data.poem.length) {
 					this.poemShuffle = []
+					// 随机完成，重新来过
+					this.DataPoemTemp = [...Data.poem]
 				}
-				while (true) {
-					if (this.poemShuffle.includes(shuffle)) {
-						shuffle = uni.$u.random(0, Data.poem.length - 1)
-					} else {
-						break
-					}
-				}
+
+				// while (true) {
+				// 	if (this.poemShuffle.includes(shuffle)) {
+				// 		shuffle = uni.$u.random(0, Data.poem.length - 1)
+				// 	} else {
+				// 		break
+				// 	}
+				// }
 				this.poemShuffle.push(shuffle)
 				return shuffle
 			},
