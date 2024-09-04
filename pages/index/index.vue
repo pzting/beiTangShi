@@ -3,57 +3,55 @@
 		<!-- 提示 -->
 		<u-alert :title="title" type="primary" :description="description"></u-alert>
 		<!-- <u-rate :count="count" v-model="value"></u-rate> -->
-
 		<!-- <u-code-input v-model="value"></u-code-input> -->
 		<!-- 倒计时 -->
 		<view class="countDown">
 			<view class="btns">
-				<u-button v-if="type=='over'" text="重来" :plain="true" type="warning" @click="reset"></u-button>
-				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="primary"
+				<u-button v-if="type == 'over'" text="重来" :plain="true" type="warning" @click="reset"></u-button>
+				<u-button v-if="type == 'pause'" text="开始" :plain="true" size="normal" type="primary"
 					@click="start"></u-button>
-				<u-button v-if="type=='start'" text="暂停" :plain="true" type="error" @click="pause"></u-button>
+				<u-button v-if="type == 'start'" text="暂停" :plain="true" type="error" @click="pause"></u-button>
 			</view>
 			<view class="timeText">倒计时</view>
 			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond
 				@change="onChange" @finish="onFinish">
 				<view class="time">
-					<view class="time__custom seconds">
+					<view class="seconds time__custom">
 						<text class="time__custom__item">{{ timeData.minutes }}</text>
 					</view>
 					<text class="time__doc">:</text>
-					<view class="time__custom seconds">
+					<view class="seconds time__custom">
 						<text class="time__custom__item">{{ timeData.seconds }}</text>
 					</view>
 					<text class="time__doc">:</text>
-					<view class="time__custom milliseconds">
-						<text class="time__custom__item">{{ timeData.milliseconds}}</text>
+					<view class="milliseconds time__custom">
+						<text class="time__custom__item">{{ timeData.milliseconds }}</text>
 					</view>
 				</view>
 			</u-count-down>
-
-
 		</view>
 		<!-- 诗 -->
 		<view class="poemBox">
-			<view v-if="isTitle" class="title">{{ poem.title}}</view>
-			<view v-else @tap="isTitle=true" class="title">点击查看标题</view>
-			<view v-if="isAuthor" class="author">{{poem.author}}</view>
-			<view v-else @tap="isAuthor=true" class="author">点击查看作者</view>
-			<view v-for="(item,row) in poemWordWrite" class="item">
-				<template v-for="(word,ind) in item">
-					<view v-if="word==','||word=='，'">{{word}}</view>
-					<text v-else @tap="recall(row,ind)"
-						:class="{focus:focus==`${row}-${ind}`,error:poemWordWriteCla[row][ind]}">{{word}}</text>
+			<view v-if="isTitle" class="title">{{ poem.title }}</view>
+			<view v-else class="title" @tap="isTitle = true">点击查看标题</view>
+			<view v-if="isAuthor" class="author">{{ poem.author }}</view>
+			<view v-else class="author" @tap="isAuthor = true">点击查看作者</view>
+			<view v-for="(item, row) in poemWordWrite" class="item">
+				<template v-for="(word, ind) in item">
+					<view v-if="word == ',' || word == '，'">{{ word }}</view>
+					<text v-else :class="{ focus: focus == `${row}-${ind}`, error: poemWordWriteCla[row][ind] }"
+						@tap="recall(row, ind)">
+						{{ word }}
+					</text>
 				</template>。
 			</view>
 		</view>
-
-		<view v-if="type=='over'" class="result">
-			<view v-if="result.len==0" class="title success">成功</view>
-			<view v-else class="title error">失败</view>
+		<view v-if="type == 'over'" class="result">
+			<view v-if="result.len == 0" class="success title">成功</view>
+			<view v-else class="error title">失败</view>
 			<view class="data">
-				<view class="item ">总字数<text class="all">{{ result.wordLen}}</text></view>
-				<view class="item ">错误字数<text class="error">{{ result.len}}</text></view>
+				<view class="item">总字数<text class="all">{{ result.wordLen }}</text></view>
+				<view class="item">错误字数<text class="error">{{ result.len }}</text></view>
 			</view>
 			<view class="btns">
 				<view class="btn">
@@ -64,15 +62,16 @@
 				</view>
 			</view>
 		</view>
-
 		<!-- 底下文字 -->
-		<view v-if="type!='over'" class="wordBox">
-			<view :class="{hide:type=='start'}" class="mask">
-				<u-button type="primary" @click="start" :plain="true" text="开始"></u-button>
+		<view v-if="type != 'over'" class="wordBox">
+			<view :class="{ hide: type == 'start' }" class="mask">
+				<u-button type="primary" :plain="true" text="开始" @click="start"></u-button>
 			</view>
-			<template v-for="(word,ind) in poemWordShuffle">
-				<view v-if="word!==','&&word!=='，'" @tap="setPoem(word,ind)" :class="{'vanish':poemWordShuffleCla[ind]}"
-					class="word">{{word}}</view>
+			<template v-for="(word, ind) in poemWordShuffle">
+				<view v-if="word !== ',' && word !== '，'" :class="{ vanish: poemWordShuffleCla[ind] }" class="word"
+					@tap="setPoem(word, ind)">
+					{{ word }}
+				</view>
 			</template>
 		</view>
 	</view>
@@ -82,10 +81,11 @@
 	import {
 		Data,
 		poemStr,
-		setPoemObj
-	} from "./data.js"
+		setPoemObj,
+	} from './data.js';
 	export default {
 		components: {},
+
 		data() {
 			return {
 				Data,
@@ -110,7 +110,7 @@
 				poemWordShuffleCla: [],
 				poemWordError: [],
 				result: {
-					len: '-'
+					len: '-',
 				},
 				word: '',
 				wordLen: 0,
@@ -119,67 +119,71 @@
 				value: 2,
 				timeData: {},
 				title: '规则',
-				description: '规定时间内点击下面文字将唐诗补充完整'
+				description: '规定时间内点击下面文字将唐诗补充完整',
 			};
 		},
-		onLoad() {
-			let poemArr = poemStr.map(item => setPoemObj(item))
-			Data.poem = [...Data.poem, ...this.poemList, ...poemArr]
-			this.DataPoemTemp = [...Data.poem]
 
+		onLoad() {
+			const poemArr = poemStr.map((item) => setPoemObj(item));
+			Data.poem = [...Data.poem, ...this.poemList, ...poemArr];
+			this.DataPoemTemp = [...Data.poem];
 		},
+
 		onReady() {
-			let me = this
-			setTimeout(function() {
-				me.init()
+			const me = this;
+			setTimeout(() => {
+				me.init();
 			}, 10);
 		},
+
 		onShow() {
 			// Data.poem = [...Data.poem, this.poemList]
 
 
 		},
+
 		watch: {
 			type(newValue, oldValue) {
 				if (newValue == 'over') {
-					this.addResult()
+					this.addResult();
 				}
-			}
+			},
 		},
+
 		methods: {
-			//初始化
+			// 初始化
 			init() {
 				this.isTitle = true;
 				this.isAuthor = true;
 				// 随机
-				let shuffle = this.shufflePoem()
-				this.poem = this.DataPoemTemp[shuffle]
-				this.DataPoemTemp.splice(shuffle, 1)
-				let poemWord = this.poem.poemWord
-
-				let {
+				const shuffle = this.shufflePoem();
+				this.poem = this.DataPoemTemp[shuffle];
+				this.DataPoemTemp.splice(shuffle, 1);
+				const poemWord = this.poem.poemWord;
+				const {
 					arr,
 					arrEmpty,
 					arrError,
-					arrCla
-				} = this.setArr(poemWord)
+					arrCla,
+				} = this.setArr(poemWord);
 
-				this.arrEmpty = this.deepClone2DArray(arrEmpty)
-				this.poemWordCorrect = arr
-				this.poemWordWrite = this.deepClone2DArray(arrEmpty)
-				this.poemWordError = arrError
-				this.poemWordWriteCla = arrCla
-				this.shuffleWord()
+				this.arrEmpty = this.deepClone2DArray(arrEmpty);
+				this.poemWordCorrect = arr;
+				this.poemWordWrite = this.deepClone2DArray(arrEmpty);
+				this.poemWordError = arrError;
+				this.poemWordWriteCla = arrCla;
+				this.shuffleWord();
 			},
+
 			// 随机诗
 			shufflePoem() {
-				let shuffle = uni.$u.random(0, this.DataPoemTemp.length - 1)
+				const shuffle = uni.$u.random(0, this.DataPoemTemp.length - 1);
 
 				// 随机数量相等
 				if (this.poemShuffle.length == Data.poem.length) {
-					this.poemShuffle = []
+					this.poemShuffle = [];
 					// 随机完成，重新来过
-					this.DataPoemTemp = [...Data.poem]
+					this.DataPoemTemp = [...Data.poem];
 				}
 
 				// while (true) {
@@ -189,24 +193,27 @@
 				// 		break
 				// 	}
 				// }
-				this.poemShuffle.push(shuffle)
-				return shuffle
+				this.poemShuffle.push(shuffle);
+				return shuffle;
 			},
+
 			deepClone2DArray(arr) {
-				return arr.map(subArray => {
+				return arr.map((subArray) => {
 					return [...subArray];
 				});
 			},
+
 			// 随机文字
 			shuffleWord() {
-				this.poemWordWrite = this.deepClone2DArray(this.arrEmpty)
-				this.focus = '0-0'
-				let wordArr = this.poemWordCorrect + ''
+				this.poemWordWrite = this.deepClone2DArray(this.arrEmpty);
+				this.focus = '0-0';
+				let wordArr = `${this.poemWordCorrect}`;
 				wordArr = wordArr.split(',');
-				wordArr = wordArr.filter(item => item != '，');
-				this.poemWordShuffle = this.shuffleArray(wordArr)
-				this.poemWordShuffleCla = new Array(this.poemWordShuffle.length).fill(false)
+				wordArr = wordArr.filter((item) => item != '，');
+				this.poemWordShuffle = this.shuffleArray(wordArr);
+				this.poemWordShuffleCla = new Array(this.poemWordShuffle.length).fill(false);
 			},
+
 			// 随机
 			shuffleArray(arr) {
 				for (let i = arr.length - 1; i > 0; i--) {
@@ -215,202 +222,209 @@
 				}
 				return arr;
 			},
+
 			// 格式化
 			setArr(str) {
-				let arr = []
-				let arrEmpty = []
-				let arrError = []
-				let arrCla = []
+				const arr = [];
+				const arrEmpty = [];
+				const arrError = [];
+				const arrCla = [];
 				// 去除所以空白字符
-				str = str.replace(/\s/g, "");
-				let len = str.match(/。/g).length
-				this.result = {}
-				this.result.wordLen = str.match(/([^。，])/g).length
+				str = str.replace(/\s/g, '');
+				const len = str.match(/。/g).length;
+				this.result = {};
+				this.result.wordLen = str.match(/([^。，])/g).length;
 				for (let i = 0; i < len; i++) {
-					arr.push([])
-					arrEmpty.push([])
-					arrError.push([])
-					arrCla.push([])
+					arr.push([]);
+					arrEmpty.push([]);
+					arrError.push([]);
+					arrCla.push([]);
 				}
-				let row = 0
+				let row = 0;
 				for (let i = 0; i < str.length; i++) {
-					let word = str[i]
+					const word = str[i];
 					if (word == '，' || word == ',') {
-						arr[row].push(word)
-						arrEmpty[row].push(word)
-						arrError[row].push('')
-						arrCla[row].push(false)
-
+						arr[row].push(word);
+						arrEmpty[row].push(word);
+						arrError[row].push('');
+						arrCla[row].push(false);
 					} else if (word == '。' || word == '.') {
-						row++
+						row++;
 					} else {
-						word && arr[row].push(word)
-						word && arrEmpty[row].push('')
-						word && arrError[row].push('')
-						word && arrCla[row].push(false)
+						word && arr[row].push(word);
+						word && arrEmpty[row].push('');
+						word && arrError[row].push('');
+						word && arrCla[row].push(false);
 					}
 				}
 				return {
 					arr,
 					arrEmpty,
 					arrError,
-					arrCla
-				}
+					arrCla,
+				};
 			},
+
 			// 点击诗，撤回
 			recall(row, ind) {
 				if (this.isSetWord) {
-					return
+					return;
 				}
 				this.focus = `${row}-${ind}`;
 				if (this.poemWordWrite[row][ind]) {
 					// 清空当前点击诗的文字
-					let word = this.poemWordWrite[row][ind]
-					this.poemWordWrite[row][ind] = ''
+					const word = this.poemWordWrite[row][ind];
+					this.poemWordWrite[row][ind] = '';
 					// 将底部文字显示出来
-					let wordInd = this.poemWordShuffle.indexOf(word)
-					this.poemWordShuffleCla[wordInd] = false
+					const wordInd = this.poemWordShuffle.indexOf(word);
+					this.poemWordShuffleCla[wordInd] = false;
 				}
 			},
+
 			// 点击下面文字
 			setPoem(word, wordInd) {
 				if (this.poemWordShuffleCla[wordInd]) {
-					return
+					return;
 				}
 				if (this.isSetWord) {
-					this.isSetWord = true
-					return
+					this.isSetWord = true;
+					return;
 				}
-				let claLen = this.poemWordShuffleCla.filter(item => !item)
+				const claLen = this.poemWordShuffleCla.filter((item) => !item);
 				if (claLen.length <= 2) {
 					if (this.type != 'over') {
-						this.pause()
-						this.type = 'over'
+						this.pause();
+						this.type = 'over';
 					}
-					return
+					return;
 				}
-				let ind = this.focus.split('-')
+				const ind = this.focus.split('-');
 
-				let row = Number(ind[0])
-				let col = Number(ind[1])
-				let rowOld = row
-				let colOld = col
-				let len = this.poemWordCorrect[0].length
+				let row = Number(ind[0]);
+				let col = Number(ind[1]);
+				const rowOld = row;
+				const colOld = col;
+				const len = this.poemWordCorrect[0].length;
 				// 最后一行
 				if (row == this.poemWordCorrect.length - 1) {
 					if (col == len - 1) {
 						if (this.type != 'over') {
-							this.pause()
-							this.type = 'over'
+							this.pause();
+							this.type = 'over';
 						}
 					}
 					if (col == len) {
-						return
+						return;
 					}
 				}
-				this.isOver = false
-				this.poemWordShuffleCla[wordInd] = true
-				this.poemWordWrite[rowOld][colOld] = word
+				this.isOver = false;
+				this.poemWordShuffleCla[wordInd] = true;
+				this.poemWordWrite[rowOld][colOld] = word;
 				if (this.poemWordCorrect[rowOld][colOld] != this.poemWordWrite[rowOld][colOld]) {
-					this.poemWordWriteCla[rowOld][colOld] = true
+					this.poemWordWriteCla[rowOld][colOld] = true;
 					this.poemWordError[rowOld][colOld] = ({
 						word: this.poemWordCorrect[rowOld][colOld],
 						wordError: word,
-						ind: this.focus
-					})
+						ind: this.focus,
+					});
 					// 错误
 				} else {
-					this.poemWordWriteCla[rowOld][colOld] = false
-					this.poemWordError[rowOld][colOld] = ('')
+					this.poemWordWriteCla[rowOld][colOld] = false;
+					this.poemWordError[rowOld][colOld] = ('');
 				}
-				let resultArr = this.poemWordError.flat(2)
-				resultArr = resultArr.filter(item => item).map(item => item.word)
-				let resultErrorArr = this.poemWordError.flat(2)
-				resultErrorArr = resultErrorArr.filter(item => item).map(item => item.wordError)
+				let resultArr = this.poemWordError.flat(2);
+				resultArr = resultArr.filter((item) => item).map((item) => item.word);
+				let resultErrorArr = this.poemWordError.flat(2);
+				resultErrorArr = resultErrorArr.filter((item) => item).map((item) => item.wordError);
 				this.result = {
 					...this.result,
 					word: resultArr,
 					len: resultErrorArr.length,
 					wordError: resultErrorArr,
-				}
+				};
 				if (col < len) {
-					col += 1
+					col += 1;
 					if (this.poemWordCorrect[row][col] == ',' || this.poemWordCorrect[row][col] == '，') {
-						col += 1
+						col += 1;
 					}
 				}
 				if (col == len && row < this.poemWordCorrect.length - 1) {
-					row += 1
-					col = 0
+					row += 1;
+					col = 0;
 				}
 
 
-
-
-				this.focus = row + '-' + col
-				this.isSetWord = false
+				this.focus = `${row}-${col}`;
+				this.isSetWord = false;
 			},
-			//开始
+
+			// 开始
 			start() {
 				this.$refs.countDown.start();
-				this.type = 'start'
+				this.type = 'start';
 			},
+
 			// 暂停
 			pause() {
 				this.$refs.countDown.pause();
-				this.type = 'pause'
+				this.type = 'pause';
 			},
+
 			// 重置
 			reset() {
 				this.$refs.countDown.reset();
 				this.result = {
-					wordLen: this.result.wordLen
-				}
+					wordLen: this.result.wordLen,
+				};
 
-				this.start()
-				this.shuffleWord()
+				this.start();
+				this.shuffleWord();
 			},
+
 			// 换一首
 			changeOne() {
 				this.$refs.countDown.reset();
-				this.init()
-				this.start()
+				this.init();
+				this.start();
 			},
+
 			onChange(e) {
-				this.timeData = e
+				this.timeData = e;
 			},
+
 			onFinish() {
-				this.type = 'over'
+				this.type = 'over';
 			},
+
 			// 最终结果统计
 			addResult() {
-				let dataResult = uni.getStorageSync('dataResult')
-				let all = Data.poem.length,
-					write = 0,
-					success = 0,
-					error = 0
+				const dataResult = uni.getStorageSync('dataResult');
+				const all = Data.poem.length;
+				let write = 0;
+				let success = 0;
+				let error = 0;
 				if (dataResult) {
-					write = Number(dataResult.write)
-					success = Number(dataResult.success)
-					error = Number(dataResult.error)
+					write = Number(dataResult.write);
+					success = Number(dataResult.success);
+					error = Number(dataResult.error);
 				}
 
 				if (this.result.len == 0) {
 					// 成功
-					success += 1
+					success += 1;
 				} else {
 					// error += 1
 				}
-				write += 1
-				error = write - success
+				write += 1;
+				error = write - success;
 				uni.setStorageSync('dataResult', {
 					all,
 					write,
 					success,
-					error
+					error,
 				});
-			}
-		}
+			},
+		},
 	};
 </script>
 
@@ -561,7 +575,6 @@
 							color: #dc2d00;
 						}
 					}
-
 
 
 				}
