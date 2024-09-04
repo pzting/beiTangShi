@@ -206,7 +206,7 @@
 .index .wordBox .mask.data-v-57280228 {
   position: absolute;
   left: 0;
-  right: 0;
+  right: 20rpx;
   bottom: 0;
   height: 100%;
   border-radius: 20rpx;

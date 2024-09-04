@@ -1,5 +1,5 @@
 {
-    "name" : "ucharts",
+    "name" : "快乐背唐诗",
     "appid" : "__UNI__4EC96CC",
     "description" : "",
     "versionName" : "1.0.0",
@@ -50,7 +50,7 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "wxc59a07867134225c",
+        "appid" : "wx74d1b058921cfcad",
         "setting" : {
             "urlCheck" : false
         },

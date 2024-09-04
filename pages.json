@@ -10,6 +10,15 @@
 			}
 		},
 		{
+			"path": "pages/poemList/index",
+			"style": {
+				// "navigationStyle": "custom",
+				/* "navigationBarBackgroundColor": "#000324",
+				"navigationBarTextStyle": "white",*/
+				"navigationBarTitleText": "唐诗"
+			}
+		},
+		{
 			"path": "pages/my/index",
 			"style": {
 				// "navigationStyle": "custom"
