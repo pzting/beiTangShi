@@ -11,6 +11,7 @@
     "minified": false,
     "newFeature": true,
     "bigPackageSizeSupport": true,
+    "compileHotReLoad": false,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
@@ -18,9 +19,9 @@
     }
   },
   "compileType": "miniprogram",
-  "libVersion": "3.3.4",
-  "appid": "wxc59a07867134225c",
-  "projectname": "ucharts",
+  "libVersion": "3.5.6",
+  "appid": "wx74d1b058921cfcad",
+  "projectname": "快乐背唐诗",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",

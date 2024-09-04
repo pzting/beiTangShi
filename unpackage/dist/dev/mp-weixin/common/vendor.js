@@ -14,7 +14,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
-var objectKeys = ['qy', 'env', 'error', 'version', 'lanDebug', 'cloud', 'serviceMarket', 'router', 'worklet', '__webpack_require_UNI_MP_PLUGIN__'];
+var objectKeys = ['qy', 'env', 'error', 'version', 'lanDebug', 'cloud', 'serviceMarket', 'router', 'worklet'];
 var singlePageDisableKey = ['lanDebug', 'router', 'worklet'];
 var target = typeof globalThis !== 'undefined' ? globalThis : function () {
   return this;
@@ -248,22 +248,22 @@ function removeInterceptor(method, option) {
     removeInterceptorHook(globalInterceptors, method);
   }
 }
-function wrapperHook(hook, params) {
+function wrapperHook(hook) {
   return function (data) {
-    return hook(data, params) || data;
+    return hook(data) || data;
   };
 }
 function isPromise(obj) {
   return !!obj && ((0, _typeof2.default)(obj) === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
 }
-function queue(hooks, data, params) {
+function queue(hooks, data) {
   var promise = false;
   for (var i = 0; i < hooks.length; i++) {
     var hook = hooks[i];
     if (promise) {
-      promise = Promise.resolve(wrapperHook(hook, params));
+      promise = Promise.resolve(wrapperHook(hook));
     } else {
-      var res = hook(data, params);
+      var res = hook(data);
       if (isPromise(res)) {
         promise = Promise.resolve(res);
       }
@@ -286,7 +286,7 @@ function wrapperOptions(interceptor) {
     if (Array.isArray(interceptor[name])) {
       var oldCallback = options[name];
       options[name] = function callbackInterceptor(res) {
-        queue(interceptor[name], res, options).then(function (res) {
+        queue(interceptor[name], res).then(function (res) {
           /* eslint-disable no-mixed-operators */
           return isFn(oldCallback) && oldCallback(res) || res;
         });
@@ -335,8 +335,7 @@ function invokeApi(method, api, options) {
     if (Array.isArray(interceptor.invoke)) {
       var res = queue(interceptor.invoke, options);
       return res.then(function (options) {
-        // 重新访问 getApiInterceptorHooks, 允许 invoke 中再次调用 addInterceptor,removeInterceptor
-        return api.apply(void 0, [wrapperOptions(getApiInterceptorHooks(method), options)].concat(params));
+        return api.apply(void 0, [wrapperOptions(interceptor, options)].concat(params));
       });
     } else {
       return api.apply(void 0, [wrapperOptions(interceptor, options)].concat(params));
@@ -780,8 +779,8 @@ function populateParameters(result) {
     appVersion: "1.0.0",
     appVersionCode: "100",
     appLanguage: getAppLanguage(hostLanguage),
-    uniCompileVersion: "4.24",
-    uniRuntimeVersion: "4.24",
+    uniCompileVersion: "3.7.11",
+    uniRuntimeVersion: "3.7.11",
     uniPlatform: undefined || "mp-weixin",
     deviceBrand: deviceBrand,
     deviceModel: model,
@@ -1557,7 +1556,7 @@ function initData(vueOptions, context) {
     try {
       data = data.call(context); // 支持 Vue.prototype 上挂的数据
     } catch (e) {
-      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.warn('根据 Vue 的 data 函数初始化小程序 data 失败，请尽量确保 data 函数中不访问 vm 对象，否则可能影响首次数据渲染速度。', data);
       }
     }
@@ -1954,10 +1953,14 @@ function handleEvent(event) {
   }
 }
 var eventChannels = {};
+var eventChannelStack = [];
 function getEventChannel(id) {
-  var eventChannel = eventChannels[id];
-  delete eventChannels[id];
-  return eventChannel;
+  if (id) {
+    var eventChannel = eventChannels[id];
+    delete eventChannels[id];
+    return eventChannel;
+  }
+  return eventChannelStack.shift();
 }
 var hooks = ['onShow', 'onHide', 'onError', 'onPageNotFound', 'onThemeChange', 'onUnhandledRejection'];
 function initEventChannel() {
@@ -1979,54 +1982,38 @@ function initEventChannel() {
 function initScopedSlotsParams() {
   var center = {};
   var parents = {};
-  function currentId(fn) {
-    var vueIds = this.$options.propsData.vueId;
-    if (vueIds) {
-      var vueId = vueIds.split(',')[0];
-      fn(vueId);
-    }
-  }
-  _vue.default.prototype.$hasSSP = function (vueId) {
-    var slot = center[vueId];
-    if (!slot) {
+  _vue.default.prototype.$hasScopedSlotsParams = function (vueId) {
+    var has = center[vueId];
+    if (!has) {
       parents[vueId] = this;
       this.$on('hook:destroyed', function () {
         delete parents[vueId];
       });
     }
-    return slot;
+    return has;
   };
-  _vue.default.prototype.$getSSP = function (vueId, name, needAll) {
-    var slot = center[vueId];
-    if (slot) {
-      var params = slot[name] || [];
-      if (needAll) {
-        return params;
-      }
-      return params[0];
+  _vue.default.prototype.$getScopedSlotsParams = function (vueId, name, key) {
+    var data = center[vueId];
+    if (data) {
+      var object = data[name] || {};
+      return key ? object[key] : object;
+    } else {
+      parents[vueId] = this;
+      this.$on('hook:destroyed', function () {
+        delete parents[vueId];
+      });
     }
   };
-  _vue.default.prototype.$setSSP = function (name, value) {
-    var index = 0;
-    currentId.call(this, function (vueId) {
-      var slot = center[vueId];
-      var params = slot[name] = slot[name] || [];
-      params.push(value);
-      index = params.length - 1;
-    });
-    return index;
-  };
-  _vue.default.prototype.$initSSP = function () {
-    currentId.call(this, function (vueId) {
-      center[vueId] = {};
-    });
-  };
-  _vue.default.prototype.$callSSP = function () {
-    currentId.call(this, function (vueId) {
+  _vue.default.prototype.$setScopedSlotsParams = function (name, value) {
+    var vueIds = this.$options.propsData.vueId;
+    if (vueIds) {
+      var vueId = vueIds.split(',')[0];
+      var object = center[vueId] = center[vueId] || {};
+      object[name] = value;
       if (parents[vueId]) {
         parents[vueId].$forceUpdate();
       }
-    });
+    }
   };
   _vue.default.mixin({
     destroyed: function destroyed() {
@@ -2178,7 +2165,6 @@ function parseBaseComponent(vueComponentOptions) {
     vueOptions = _initVueComponent2[1];
   var options = _objectSpread({
     multipleSlots: true,
-    // styleIsolation: 'apply-shared',
     addGlobalClass: true
   }, vueOptions.options || {});
   {
@@ -2424,7 +2410,7 @@ if (typeof Proxy !== 'undefined' && "mp-weixin" !== 'app-plus') {
       uni[name] = promisify(name, todoApis[name]);
     });
     Object.keys(extraApi).forEach(function (name) {
-      uni[name] = promisify(name, extraApi[name]);
+      uni[name] = promisify(name, todoApis[name]);
     });
   }
   Object.keys(eventApi).forEach(function (name) {
@@ -2532,33 +2518,33 @@ module.exports = _arrayWithHoles, module.exports.__esModule = true, module.expor
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-function _iterableToArrayLimit(r, l) {
-  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
-  if (null != t) {
-    var e,
-      n,
-      i,
-      u,
-      a = [],
-      f = !0,
-      o = !1;
+function _iterableToArrayLimit(arr, i) {
+  var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"];
+  if (null != _i) {
+    var _s,
+      _e,
+      _x,
+      _r,
+      _arr = [],
+      _n = !0,
+      _d = !1;
     try {
-      if (i = (t = t.call(r)).next, 0 === l) {
-        if (Object(t) !== t) return;
-        f = !1;
-      } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0) {
+      if (_x = (_i = _i.call(arr)).next, 0 === i) {
+        if (Object(_i) !== _i) return;
+        _n = !1;
+      } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0) {
         ;
       }
-    } catch (r) {
-      o = !0, n = r;
+    } catch (err) {
+      _d = !0, _e = err;
     } finally {
       try {
-        if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return;
+        if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return;
       } finally {
-        if (o) throw n;
+        if (_d) throw _e;
       }
     }
-    return a;
+    return _arr;
   }
 }
 module.exports = _iterableToArrayLimit, module.exports.__esModule = true, module.exports["default"] = module.exports;
@@ -2647,11 +2633,11 @@ module.exports = _defineProperty, module.exports.__esModule = true, module.expor
 
 var _typeof = __webpack_require__(/*! ./typeof.js */ 13)["default"];
 var toPrimitive = __webpack_require__(/*! ./toPrimitive.js */ 14);
-function toPropertyKey(t) {
-  var i = toPrimitive(t, "string");
-  return "symbol" == _typeof(i) ? i : i + "";
+function _toPropertyKey(arg) {
+  var key = toPrimitive(arg, "string");
+  return _typeof(key) === "symbol" ? key : String(key);
 }
-module.exports = toPropertyKey, module.exports.__esModule = true, module.exports["default"] = module.exports;
+module.exports = _toPropertyKey, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
 /* 13 */
@@ -2661,14 +2647,14 @@ module.exports = toPropertyKey, module.exports.__esModule = true, module.exports
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-function _typeof(o) {
+function _typeof(obj) {
   "@babel/helpers - typeof";
 
-  return (module.exports = _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) {
-    return typeof o;
-  } : function (o) {
-    return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
-  }, module.exports.__esModule = true, module.exports["default"] = module.exports), _typeof(o);
+  return (module.exports = _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+    return typeof obj;
+  } : function (obj) {
+    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+  }, module.exports.__esModule = true, module.exports["default"] = module.exports), _typeof(obj);
 }
 module.exports = _typeof, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
@@ -2681,17 +2667,17 @@ module.exports = _typeof, module.exports.__esModule = true, module.exports["defa
 /***/ (function(module, exports, __webpack_require__) {
 
 var _typeof = __webpack_require__(/*! ./typeof.js */ 13)["default"];
-function toPrimitive(t, r) {
-  if ("object" != _typeof(t) || !t) return t;
-  var e = t[Symbol.toPrimitive];
-  if (void 0 !== e) {
-    var i = e.call(t, r || "default");
-    if ("object" != _typeof(i)) return i;
+function _toPrimitive(input, hint) {
+  if (_typeof(input) !== "object" || input === null) return input;
+  var prim = input[Symbol.toPrimitive];
+  if (prim !== undefined) {
+    var res = prim.call(input, hint || "default");
+    if (_typeof(res) !== "object") return res;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r ? String : Number)(t);
+  return (hint === "string" ? String : Number)(input);
 }
-module.exports = toPrimitive, module.exports.__esModule = true, module.exports["default"] = module.exports;
+module.exports = _toPrimitive, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
 /* 15 */
@@ -2703,12 +2689,20 @@ module.exports = toPrimitive, module.exports.__esModule = true, module.exports["
 
 var setPrototypeOf = __webpack_require__(/*! ./setPrototypeOf.js */ 16);
 var isNativeReflectConstruct = __webpack_require__(/*! ./isNativeReflectConstruct.js */ 17);
-function _construct(t, e, r) {
-  if (isNativeReflectConstruct()) return Reflect.construct.apply(null, arguments);
-  var o = [null];
-  o.push.apply(o, e);
-  var p = new (t.bind.apply(t, o))();
-  return r && setPrototypeOf(p, r.prototype), p;
+function _construct(Parent, args, Class) {
+  if (isNativeReflectConstruct()) {
+    module.exports = _construct = Reflect.construct.bind(), module.exports.__esModule = true, module.exports["default"] = module.exports;
+  } else {
+    module.exports = _construct = function _construct(Parent, args, Class) {
+      var a = [null];
+      a.push.apply(a, args);
+      var Constructor = Function.bind.apply(Parent, a);
+      var instance = new Constructor();
+      if (Class) setPrototypeOf(instance, Class.prototype);
+      return instance;
+    }, module.exports.__esModule = true, module.exports["default"] = module.exports;
+  }
+  return _construct.apply(null, arguments);
 }
 module.exports = _construct, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
@@ -2738,12 +2732,15 @@ module.exports = _setPrototypeOf, module.exports.__esModule = true, module.expor
 /***/ (function(module, exports) {
 
 function _isNativeReflectConstruct() {
+  if (typeof Reflect === "undefined" || !Reflect.construct) return false;
+  if (Reflect.construct.sham) return false;
+  if (typeof Proxy === "function") return true;
   try {
-    var t = !Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
-  } catch (t) {}
-  return (module.exports = _isNativeReflectConstruct = function _isNativeReflectConstruct() {
-    return !!t;
-  }, module.exports.__esModule = true, module.exports["default"] = module.exports)();
+    Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {}));
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 module.exports = _isNativeReflectConstruct, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
@@ -2832,6 +2829,7 @@ var _slicedToArray2 = _interopRequireDefault(__webpack_require__(/*! @babel/runt
 var _classCallCheck2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ 23));
 var _createClass2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/createClass */ 24));
 var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
+var isArray = Array.isArray;
 var isObject = function isObject(val) {
   return val !== null && (0, _typeof2.default)(val) === 'object';
 };
@@ -2910,7 +2908,7 @@ function parse(format, _ref) {
 function compile(tokens, values) {
   var compiled = [];
   var index = 0;
-  var mode = Array.isArray(values) ? 'list' : isObject(values) ? 'named' : 'unknown';
+  var mode = isArray(values) ? 'list' : isObject(values) ? 'named' : 'unknown';
   if (mode === 'unknown') {
     return compiled;
   }
@@ -2976,10 +2974,6 @@ function normalizeLocale(locale, messages) {
     return locale;
   }
   locale = locale.toLowerCase();
-  if (locale === 'chinese') {
-    // 支付宝
-    return LOCALE_ZH_HANS;
-  }
   if (locale.indexOf('zh') === 0) {
     if (locale.indexOf('-hans') > -1) {
       return LOCALE_ZH_HANS;
@@ -2992,11 +2986,7 @@ function normalizeLocale(locale, messages) {
     }
     return LOCALE_ZH_HANS;
   }
-  var locales = [LOCALE_EN, LOCALE_FR, LOCALE_ES];
-  if (messages && Object.keys(messages).length > 0) {
-    locales = Object.keys(messages);
-  }
-  var lang = startsWith(locale, locales);
+  var lang = startsWith(locale, [LOCALE_EN, LOCALE_FR, LOCALE_ES]);
   if (lang) {
     return lang;
   }
@@ -3303,7 +3293,7 @@ function compileJsonObj(jsonObj, localeValues, delimiters) {
   return jsonObj;
 }
 function walkJsonObj(jsonObj, walk) {
-  if (Array.isArray(jsonObj)) {
+  if (isArray(jsonObj)) {
     for (var i = 0; i < jsonObj.length; i++) {
       if (walk(jsonObj, i)) {
         return true;
@@ -3395,7 +3385,7 @@ module.exports = _createClass, module.exports.__esModule = true, module.exports[
 __webpack_require__.r(__webpack_exports__);
 /* WEBPACK VAR INJECTION */(function(global) {/*!
  * Vue.js v2.6.11
- * (c) 2014-2023 Evan You
+ * (c) 2014-2022 Evan You
  * Released under the MIT License.
  */
 /*  */
@@ -8923,7 +8913,7 @@ function type(obj) {
 
 function flushCallbacks$1(vm) {
     if (vm.__next_tick_callbacks && vm.__next_tick_callbacks.length) {
-        if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
+        if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:flushCallbacks[' + vm.__next_tick_callbacks.length + ']');
@@ -8944,14 +8934,14 @@ function nextTick$1(vm, cb) {
     //1.nextTick 之前 已 setData 且 setData 还未回调完成
     //2.nextTick 之前存在 render watcher
     if (!vm.__next_tick_pending && !hasRenderWatcher(vm)) {
-        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:nextVueTick');
         }
         return nextTick(cb, vm)
     }else{
-        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance$1 = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance$1.is || mpInstance$1.route) + '][' + vm._uid +
                 ']:nextMPTick');
@@ -9047,7 +9037,7 @@ var patch = function(oldVnode, vnode) {
     });
     var diffData = this.$shouldDiffData === false ? data : diff(data, mpData);
     if (Object.keys(diffData).length) {
-      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + this._uid +
           ']差量更新',
           JSON.stringify(diffData));
@@ -9405,13 +9395,12 @@ var LIFECYCLE_HOOKS$1 = [
     'onNavigationBarSearchInputChanged',
     'onNavigationBarSearchInputConfirmed',
     'onNavigationBarSearchInputClicked',
-    'onUploadDouyinVideo',
-    'onNFCReadMessage',
     //Component
     // 'onReady', // 兼容旧版本，应该移除该事件
     'onPageShow',
     'onPageHide',
-    'onPageResize'
+    'onPageResize',
+    'onUploadDouyinVideo'
 ];
 function lifecycleMixin$1(Vue) {
 
@@ -9466,9 +9455,9 @@ internalMixin(Vue);
 
 /***/ }),
 /* 26 */
-/*!*****************************************!*\
-  !*** E:/STUDY/my/beiTangShi/pages.json ***!
-  \*****************************************/
+/*!*********************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/pages.json ***!
+  \*********************************************/
 /*! no static exports found */
 /***/ (function(module, exports) {
 
@@ -9612,9 +9601,9 @@ function normalizeComponent (
 
 /***/ }),
 /* 33 */
-/*!*******************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni.promisify.adaptor.js ***!
-  \*******************************************************/
+/*!***********************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni.promisify.adaptor.js ***!
+  \***********************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9635,9 +9624,9 @@ uni.addInterceptor({
 
 /***/ }),
 /* 34 */
-/*!************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/index.js ***!
-  \************************************************************/
+/*!****************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/index.js ***!
+  \****************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9724,9 +9713,9 @@ exports.default = _default;
 
 /***/ }),
 /* 35 */
-/*!***********************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/mixin/mixin.js ***!
-  \***********************************************************************/
+/*!***************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/mixin/mixin.js ***!
+  \***************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9892,9 +9881,9 @@ exports.default = _default;
 
 /***/ }),
 /* 36 */
-/*!*************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/mixin/mpMixin.js ***!
-  \*************************************************************************/
+/*!*****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/mixin/mpMixin.js ***!
+  \*****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9915,9 +9904,9 @@ exports.default = _default;
 
 /***/ }),
 /* 37 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/index.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/index.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -9935,9 +9924,9 @@ exports.default = _default;
 
 /***/ }),
 /* 38 */
-/*!*************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/Request.js ***!
-  \*************************************************************************************/
+/*!*****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/Request.js ***!
+  \*****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10141,9 +10130,9 @@ exports.default = Request;
 
 /***/ }),
 /* 39 */
-/*!*********************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/dispatchRequest.js ***!
-  \*********************************************************************************************/
+/*!*************************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/dispatchRequest.js ***!
+  \*************************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10163,9 +10152,9 @@ exports.default = _default;
 
 /***/ }),
 /* 40 */
-/*!***************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/adapters/index.js ***!
-  \***************************************************************************************/
+/*!*******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/adapters/index.js ***!
+  \*******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10244,9 +10233,9 @@ exports.default = _default;
 
 /***/ }),
 /* 41 */
-/*!*****************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/buildURL.js ***!
-  \*****************************************************************************************/
+/*!*********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/buildURL.js ***!
+  \*********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10314,9 +10303,9 @@ function buildURL(url, params) {
 
 /***/ }),
 /* 42 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/utils.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/utils.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10467,9 +10456,9 @@ function isUndefined(val) {
 
 /***/ }),
 /* 43 */
-/*!*******************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/buildFullPath.js ***!
-  \*******************************************************************************************/
+/*!***********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/buildFullPath.js ***!
+  \***********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10501,9 +10490,9 @@ function buildFullPath(baseURL, requestedURL) {
 
 /***/ }),
 /* 44 */
-/*!**********************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/isAbsoluteURL.js ***!
-  \**********************************************************************************************/
+/*!**************************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/isAbsoluteURL.js ***!
+  \**************************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10529,9 +10518,9 @@ function isAbsoluteURL(url) {
 
 /***/ }),
 /* 45 */
-/*!********************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/combineURLs.js ***!
-  \********************************************************************************************/
+/*!************************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/helpers/combineURLs.js ***!
+  \************************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10555,9 +10544,9 @@ function combineURLs(baseURL, relativeURL) {
 
 /***/ }),
 /* 46 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/settle.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/settle.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10587,9 +10576,9 @@ function settle(resolve, reject, response) {
 
 /***/ }),
 /* 47 */
-/*!************************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/InterceptorManager.js ***!
-  \************************************************************************************************/
+/*!****************************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/InterceptorManager.js ***!
+  \****************************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10651,9 +10640,9 @@ exports.default = _default;
 
 /***/ }),
 /* 48 */
-/*!*****************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/mergeConfig.js ***!
-  \*****************************************************************************************/
+/*!*********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/mergeConfig.js ***!
+  \*********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10727,9 +10716,9 @@ exports.default = _default;
 
 /***/ }),
 /* 49 */
-/*!**************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/defaults.js ***!
-  \**************************************************************************************/
+/*!******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/core/defaults.js ***!
+  \******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10759,9 +10748,9 @@ exports.default = _default;
 
 /***/ }),
 /* 50 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/luch-request/utils/clone.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/luch-request/utils/clone.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11007,7 +10996,7 @@ var clone = function () {
 }();
 var _default = clone;
 exports.default = _default;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/buffer/index.js */ 51).Buffer))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../../搜狗高速下载/HBuilderX.3.2.9.20210927/HBuilderX/plugins/uniapp-cli/node_modules/buffer/index.js */ 51).Buffer))
 
 /***/ }),
 /* 51 */
@@ -13083,9 +13072,9 @@ module.exports = Array.isArray || function (arr) {
 
 /***/ }),
 /* 55 */
-/*!**********************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/util/route.js ***!
-  \**********************************************************************/
+/*!**************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/util/route.js ***!
+  \**************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -13296,310 +13285,310 @@ function _regeneratorRuntime() {
 
   /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */
   module.exports = _regeneratorRuntime = function _regeneratorRuntime() {
-    return e;
+    return exports;
   }, module.exports.__esModule = true, module.exports["default"] = module.exports;
-  var t,
-    e = {},
-    r = Object.prototype,
-    n = r.hasOwnProperty,
-    o = Object.defineProperty || function (t, e, r) {
-      t[e] = r.value;
+  var exports = {},
+    Op = Object.prototype,
+    hasOwn = Op.hasOwnProperty,
+    defineProperty = Object.defineProperty || function (obj, key, desc) {
+      obj[key] = desc.value;
     },
-    i = "function" == typeof Symbol ? Symbol : {},
-    a = i.iterator || "@@iterator",
-    c = i.asyncIterator || "@@asyncIterator",
-    u = i.toStringTag || "@@toStringTag";
-  function define(t, e, r) {
-    return Object.defineProperty(t, e, {
-      value: r,
+    $Symbol = "function" == typeof Symbol ? Symbol : {},
+    iteratorSymbol = $Symbol.iterator || "@@iterator",
+    asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator",
+    toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
+  function define(obj, key, value) {
+    return Object.defineProperty(obj, key, {
+      value: value,
       enumerable: !0,
       configurable: !0,
       writable: !0
-    }), t[e];
+    }), obj[key];
   }
   try {
     define({}, "");
-  } catch (t) {
-    define = function define(t, e, r) {
-      return t[e] = r;
+  } catch (err) {
+    define = function define(obj, key, value) {
+      return obj[key] = value;
     };
   }
-  function wrap(t, e, r, n) {
-    var i = e && e.prototype instanceof Generator ? e : Generator,
-      a = Object.create(i.prototype),
-      c = new Context(n || []);
-    return o(a, "_invoke", {
-      value: makeInvokeMethod(t, r, c)
-    }), a;
+  function wrap(innerFn, outerFn, self, tryLocsList) {
+    var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator,
+      generator = Object.create(protoGenerator.prototype),
+      context = new Context(tryLocsList || []);
+    return defineProperty(generator, "_invoke", {
+      value: makeInvokeMethod(innerFn, self, context)
+    }), generator;
   }
-  function tryCatch(t, e, r) {
+  function tryCatch(fn, obj, arg) {
     try {
       return {
         type: "normal",
-        arg: t.call(e, r)
+        arg: fn.call(obj, arg)
       };
-    } catch (t) {
+    } catch (err) {
       return {
         type: "throw",
-        arg: t
+        arg: err
       };
     }
   }
-  e.wrap = wrap;
-  var h = "suspendedStart",
-    l = "suspendedYield",
-    f = "executing",
-    s = "completed",
-    y = {};
+  exports.wrap = wrap;
+  var ContinueSentinel = {};
   function Generator() {}
   function GeneratorFunction() {}
   function GeneratorFunctionPrototype() {}
-  var p = {};
-  define(p, a, function () {
+  var IteratorPrototype = {};
+  define(IteratorPrototype, iteratorSymbol, function () {
     return this;
   });
-  var d = Object.getPrototypeOf,
-    v = d && d(d(values([])));
-  v && v !== r && n.call(v, a) && (p = v);
-  var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p);
-  function defineIteratorMethods(t) {
-    ["next", "throw", "return"].forEach(function (e) {
-      define(t, e, function (t) {
-        return this._invoke(e, t);
+  var getProto = Object.getPrototypeOf,
+    NativeIteratorPrototype = getProto && getProto(getProto(values([])));
+  NativeIteratorPrototype && NativeIteratorPrototype !== Op && hasOwn.call(NativeIteratorPrototype, iteratorSymbol) && (IteratorPrototype = NativeIteratorPrototype);
+  var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(IteratorPrototype);
+  function defineIteratorMethods(prototype) {
+    ["next", "throw", "return"].forEach(function (method) {
+      define(prototype, method, function (arg) {
+        return this._invoke(method, arg);
       });
     });
   }
-  function AsyncIterator(t, e) {
-    function invoke(r, o, i, a) {
-      var c = tryCatch(t[r], t, o);
-      if ("throw" !== c.type) {
-        var u = c.arg,
-          h = u.value;
-        return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) {
-          invoke("next", t, i, a);
-        }, function (t) {
-          invoke("throw", t, i, a);
-        }) : e.resolve(h).then(function (t) {
-          u.value = t, i(u);
-        }, function (t) {
-          return invoke("throw", t, i, a);
+  function AsyncIterator(generator, PromiseImpl) {
+    function invoke(method, arg, resolve, reject) {
+      var record = tryCatch(generator[method], generator, arg);
+      if ("throw" !== record.type) {
+        var result = record.arg,
+          value = result.value;
+        return value && "object" == _typeof(value) && hasOwn.call(value, "__await") ? PromiseImpl.resolve(value.__await).then(function (value) {
+          invoke("next", value, resolve, reject);
+        }, function (err) {
+          invoke("throw", err, resolve, reject);
+        }) : PromiseImpl.resolve(value).then(function (unwrapped) {
+          result.value = unwrapped, resolve(result);
+        }, function (error) {
+          return invoke("throw", error, resolve, reject);
         });
       }
-      a(c.arg);
+      reject(record.arg);
     }
-    var r;
-    o(this, "_invoke", {
-      value: function value(t, n) {
+    var previousPromise;
+    defineProperty(this, "_invoke", {
+      value: function value(method, arg) {
         function callInvokeWithMethodAndArg() {
-          return new e(function (e, r) {
-            invoke(t, n, e, r);
+          return new PromiseImpl(function (resolve, reject) {
+            invoke(method, arg, resolve, reject);
           });
         }
-        return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg();
+        return previousPromise = previousPromise ? previousPromise.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg();
       }
     });
   }
-  function makeInvokeMethod(e, r, n) {
-    var o = h;
-    return function (i, a) {
-      if (o === f) throw Error("Generator is already running");
-      if (o === s) {
-        if ("throw" === i) throw a;
-        return {
-          value: t,
-          done: !0
-        };
+  function makeInvokeMethod(innerFn, self, context) {
+    var state = "suspendedStart";
+    return function (method, arg) {
+      if ("executing" === state) throw new Error("Generator is already running");
+      if ("completed" === state) {
+        if ("throw" === method) throw arg;
+        return doneResult();
       }
-      for (n.method = i, n.arg = a;;) {
-        var c = n.delegate;
-        if (c) {
-          var u = maybeInvokeDelegate(c, n);
-          if (u) {
-            if (u === y) continue;
-            return u;
+      for (context.method = method, context.arg = arg;;) {
+        var delegate = context.delegate;
+        if (delegate) {
+          var delegateResult = maybeInvokeDelegate(delegate, context);
+          if (delegateResult) {
+            if (delegateResult === ContinueSentinel) continue;
+            return delegateResult;
           }
         }
-        if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) {
-          if (o === h) throw o = s, n.arg;
-          n.dispatchException(n.arg);
-        } else "return" === n.method && n.abrupt("return", n.arg);
-        o = f;
-        var p = tryCatch(e, r, n);
-        if ("normal" === p.type) {
-          if (o = n.done ? s : l, p.arg === y) continue;
+        if ("next" === context.method) context.sent = context._sent = context.arg;else if ("throw" === context.method) {
+          if ("suspendedStart" === state) throw state = "completed", context.arg;
+          context.dispatchException(context.arg);
+        } else "return" === context.method && context.abrupt("return", context.arg);
+        state = "executing";
+        var record = tryCatch(innerFn, self, context);
+        if ("normal" === record.type) {
+          if (state = context.done ? "completed" : "suspendedYield", record.arg === ContinueSentinel) continue;
           return {
-            value: p.arg,
-            done: n.done
+            value: record.arg,
+            done: context.done
           };
         }
-        "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg);
+        "throw" === record.type && (state = "completed", context.method = "throw", context.arg = record.arg);
       }
     };
   }
-  function maybeInvokeDelegate(e, r) {
-    var n = r.method,
-      o = e.iterator[n];
-    if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y;
-    var i = tryCatch(o, e.iterator, r.arg);
-    if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y;
-    var a = i.arg;
-    return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y);
+  function maybeInvokeDelegate(delegate, context) {
+    var methodName = context.method,
+      method = delegate.iterator[methodName];
+    if (undefined === method) return context.delegate = null, "throw" === methodName && delegate.iterator["return"] && (context.method = "return", context.arg = undefined, maybeInvokeDelegate(delegate, context), "throw" === context.method) || "return" !== methodName && (context.method = "throw", context.arg = new TypeError("The iterator does not provide a '" + methodName + "' method")), ContinueSentinel;
+    var record = tryCatch(method, delegate.iterator, context.arg);
+    if ("throw" === record.type) return context.method = "throw", context.arg = record.arg, context.delegate = null, ContinueSentinel;
+    var info = record.arg;
+    return info ? info.done ? (context[delegate.resultName] = info.value, context.next = delegate.nextLoc, "return" !== context.method && (context.method = "next", context.arg = undefined), context.delegate = null, ContinueSentinel) : info : (context.method = "throw", context.arg = new TypeError("iterator result is not an object"), context.delegate = null, ContinueSentinel);
   }
-  function pushTryEntry(t) {
-    var e = {
-      tryLoc: t[0]
+  function pushTryEntry(locs) {
+    var entry = {
+      tryLoc: locs[0]
     };
-    1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e);
+    1 in locs && (entry.catchLoc = locs[1]), 2 in locs && (entry.finallyLoc = locs[2], entry.afterLoc = locs[3]), this.tryEntries.push(entry);
   }
-  function resetTryEntry(t) {
-    var e = t.completion || {};
-    e.type = "normal", delete e.arg, t.completion = e;
+  function resetTryEntry(entry) {
+    var record = entry.completion || {};
+    record.type = "normal", delete record.arg, entry.completion = record;
   }
-  function Context(t) {
+  function Context(tryLocsList) {
     this.tryEntries = [{
       tryLoc: "root"
-    }], t.forEach(pushTryEntry, this), this.reset(!0);
+    }], tryLocsList.forEach(pushTryEntry, this), this.reset(!0);
   }
-  function values(e) {
-    if (e || "" === e) {
-      var r = e[a];
-      if (r) return r.call(e);
-      if ("function" == typeof e.next) return e;
-      if (!isNaN(e.length)) {
-        var o = -1,
-          i = function next() {
-            for (; ++o < e.length;) {
-              if (n.call(e, o)) return next.value = e[o], next.done = !1, next;
+  function values(iterable) {
+    if (iterable) {
+      var iteratorMethod = iterable[iteratorSymbol];
+      if (iteratorMethod) return iteratorMethod.call(iterable);
+      if ("function" == typeof iterable.next) return iterable;
+      if (!isNaN(iterable.length)) {
+        var i = -1,
+          next = function next() {
+            for (; ++i < iterable.length;) {
+              if (hasOwn.call(iterable, i)) return next.value = iterable[i], next.done = !1, next;
             }
-            return next.value = t, next.done = !0, next;
+            return next.value = undefined, next.done = !0, next;
           };
-        return i.next = i;
+        return next.next = next;
       }
     }
-    throw new TypeError(_typeof(e) + " is not iterable");
+    return {
+      next: doneResult
+    };
   }
-  return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", {
+  function doneResult() {
+    return {
+      value: undefined,
+      done: !0
+    };
+  }
+  return GeneratorFunction.prototype = GeneratorFunctionPrototype, defineProperty(Gp, "constructor", {
     value: GeneratorFunctionPrototype,
     configurable: !0
-  }), o(GeneratorFunctionPrototype, "constructor", {
+  }), defineProperty(GeneratorFunctionPrototype, "constructor", {
     value: GeneratorFunction,
     configurable: !0
-  }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) {
-    var e = "function" == typeof t && t.constructor;
-    return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name));
-  }, e.mark = function (t) {
-    return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t;
-  }, e.awrap = function (t) {
+  }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, toStringTagSymbol, "GeneratorFunction"), exports.isGeneratorFunction = function (genFun) {
+    var ctor = "function" == typeof genFun && genFun.constructor;
+    return !!ctor && (ctor === GeneratorFunction || "GeneratorFunction" === (ctor.displayName || ctor.name));
+  }, exports.mark = function (genFun) {
+    return Object.setPrototypeOf ? Object.setPrototypeOf(genFun, GeneratorFunctionPrototype) : (genFun.__proto__ = GeneratorFunctionPrototype, define(genFun, toStringTagSymbol, "GeneratorFunction")), genFun.prototype = Object.create(Gp), genFun;
+  }, exports.awrap = function (arg) {
     return {
-      __await: t
+      __await: arg
     };
-  }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () {
+  }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, asyncIteratorSymbol, function () {
     return this;
-  }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) {
-    void 0 === i && (i = Promise);
-    var a = new AsyncIterator(wrap(t, r, n, o), i);
-    return e.isGeneratorFunction(r) ? a : a.next().then(function (t) {
-      return t.done ? t.value : a.next();
+  }), exports.AsyncIterator = AsyncIterator, exports.async = function (innerFn, outerFn, self, tryLocsList, PromiseImpl) {
+    void 0 === PromiseImpl && (PromiseImpl = Promise);
+    var iter = new AsyncIterator(wrap(innerFn, outerFn, self, tryLocsList), PromiseImpl);
+    return exports.isGeneratorFunction(outerFn) ? iter : iter.next().then(function (result) {
+      return result.done ? result.value : iter.next();
     });
-  }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () {
+  }, defineIteratorMethods(Gp), define(Gp, toStringTagSymbol, "Generator"), define(Gp, iteratorSymbol, function () {
     return this;
-  }), define(g, "toString", function () {
+  }), define(Gp, "toString", function () {
     return "[object Generator]";
-  }), e.keys = function (t) {
-    var e = Object(t),
-      r = [];
-    for (var n in e) {
-      r.push(n);
+  }), exports.keys = function (val) {
+    var object = Object(val),
+      keys = [];
+    for (var key in object) {
+      keys.push(key);
     }
-    return r.reverse(), function next() {
-      for (; r.length;) {
-        var t = r.pop();
-        if (t in e) return next.value = t, next.done = !1, next;
+    return keys.reverse(), function next() {
+      for (; keys.length;) {
+        var key = keys.pop();
+        if (key in object) return next.value = key, next.done = !1, next;
       }
       return next.done = !0, next;
     };
-  }, e.values = values, Context.prototype = {
+  }, exports.values = values, Context.prototype = {
     constructor: Context,
-    reset: function reset(e) {
-      if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) {
-        "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t);
+    reset: function reset(skipTempReset) {
+      if (this.prev = 0, this.next = 0, this.sent = this._sent = undefined, this.done = !1, this.delegate = null, this.method = "next", this.arg = undefined, this.tryEntries.forEach(resetTryEntry), !skipTempReset) for (var name in this) {
+        "t" === name.charAt(0) && hasOwn.call(this, name) && !isNaN(+name.slice(1)) && (this[name] = undefined);
       }
     },
     stop: function stop() {
       this.done = !0;
-      var t = this.tryEntries[0].completion;
-      if ("throw" === t.type) throw t.arg;
+      var rootRecord = this.tryEntries[0].completion;
+      if ("throw" === rootRecord.type) throw rootRecord.arg;
       return this.rval;
     },
-    dispatchException: function dispatchException(e) {
-      if (this.done) throw e;
-      var r = this;
-      function handle(n, o) {
-        return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o;
+    dispatchException: function dispatchException(exception) {
+      if (this.done) throw exception;
+      var context = this;
+      function handle(loc, caught) {
+        return record.type = "throw", record.arg = exception, context.next = loc, caught && (context.method = "next", context.arg = undefined), !!caught;
       }
-      for (var o = this.tryEntries.length - 1; o >= 0; --o) {
-        var i = this.tryEntries[o],
-          a = i.completion;
-        if ("root" === i.tryLoc) return handle("end");
-        if (i.tryLoc <= this.prev) {
-          var c = n.call(i, "catchLoc"),
-            u = n.call(i, "finallyLoc");
-          if (c && u) {
-            if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
-            if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
-          } else if (c) {
-            if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i],
+          record = entry.completion;
+        if ("root" === entry.tryLoc) return handle("end");
+        if (entry.tryLoc <= this.prev) {
+          var hasCatch = hasOwn.call(entry, "catchLoc"),
+            hasFinally = hasOwn.call(entry, "finallyLoc");
+          if (hasCatch && hasFinally) {
+            if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0);
+            if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc);
+          } else if (hasCatch) {
+            if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0);
           } else {
-            if (!u) throw Error("try statement without catch or finally");
-            if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
+            if (!hasFinally) throw new Error("try statement without catch or finally");
+            if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc);
           }
         }
       }
     },
-    abrupt: function abrupt(t, e) {
-      for (var r = this.tryEntries.length - 1; r >= 0; --r) {
-        var o = this.tryEntries[r];
-        if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) {
-          var i = o;
+    abrupt: function abrupt(type, arg) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.tryLoc <= this.prev && hasOwn.call(entry, "finallyLoc") && this.prev < entry.finallyLoc) {
+          var finallyEntry = entry;
           break;
         }
       }
-      i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null);
-      var a = i ? i.completion : {};
-      return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a);
+      finallyEntry && ("break" === type || "continue" === type) && finallyEntry.tryLoc <= arg && arg <= finallyEntry.finallyLoc && (finallyEntry = null);
+      var record = finallyEntry ? finallyEntry.completion : {};
+      return record.type = type, record.arg = arg, finallyEntry ? (this.method = "next", this.next = finallyEntry.finallyLoc, ContinueSentinel) : this.complete(record);
     },
-    complete: function complete(t, e) {
-      if ("throw" === t.type) throw t.arg;
-      return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y;
+    complete: function complete(record, afterLoc) {
+      if ("throw" === record.type) throw record.arg;
+      return "break" === record.type || "continue" === record.type ? this.next = record.arg : "return" === record.type ? (this.rval = this.arg = record.arg, this.method = "return", this.next = "end") : "normal" === record.type && afterLoc && (this.next = afterLoc), ContinueSentinel;
     },
-    finish: function finish(t) {
-      for (var e = this.tryEntries.length - 1; e >= 0; --e) {
-        var r = this.tryEntries[e];
-        if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y;
+    finish: function finish(finallyLoc) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.finallyLoc === finallyLoc) return this.complete(entry.completion, entry.afterLoc), resetTryEntry(entry), ContinueSentinel;
       }
     },
-    "catch": function _catch(t) {
-      for (var e = this.tryEntries.length - 1; e >= 0; --e) {
-        var r = this.tryEntries[e];
-        if (r.tryLoc === t) {
-          var n = r.completion;
-          if ("throw" === n.type) {
-            var o = n.arg;
-            resetTryEntry(r);
+    "catch": function _catch(tryLoc) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.tryLoc === tryLoc) {
+          var record = entry.completion;
+          if ("throw" === record.type) {
+            var thrown = record.arg;
+            resetTryEntry(entry);
           }
-          return o;
+          return thrown;
         }
       }
-      throw Error("illegal catch attempt");
+      throw new Error("illegal catch attempt");
     },
-    delegateYield: function delegateYield(e, r, n) {
+    delegateYield: function delegateYield(iterable, resultName, nextLoc) {
       return this.delegate = {
-        iterator: values(e),
-        resultName: r,
-        nextLoc: n
-      }, "next" === this.method && (this.arg = t), y;
+        iterator: values(iterable),
+        resultName: resultName,
+        nextLoc: nextLoc
+      }, "next" === this.method && (this.arg = undefined), ContinueSentinel;
     }
-  }, e;
+  }, exports;
 }
 module.exports = _regeneratorRuntime, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
@@ -13645,9 +13634,9 @@ module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exp
 
 /***/ }),
 /* 59 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/colorGradient.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/colorGradient.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -13800,9 +13789,9 @@ exports.default = _default;
 
 /***/ }),
 /* 60 */
-/*!*************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/test.js ***!
-  \*************************************************************************/
+/*!*****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/test.js ***!
+  \*****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -14105,9 +14094,9 @@ exports.default = _default;
 
 /***/ }),
 /* 61 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/debounce.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/debounce.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -14152,9 +14141,9 @@ exports.default = _default;
 
 /***/ }),
 /* 62 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/throttle.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/throttle.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -14201,9 +14190,9 @@ exports.default = _default;
 
 /***/ }),
 /* 63 */
-/*!**************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/index.js ***!
-  \**************************************************************************/
+/*!******************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/index.js ***!
+  \******************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15002,9 +14991,9 @@ exports.default = _default;
 
 /***/ }),
 /* 64 */
-/*!**************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/digit.js ***!
-  \**************************************************************************/
+/*!******************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/digit.js ***!
+  \******************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15221,9 +15210,9 @@ module.exports = _toArray, module.exports.__esModule = true, module.exports["def
 
 /***/ }),
 /* 66 */
-/*!*************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/config.js ***!
-  \*************************************************************************/
+/*!*****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/config.js ***!
+  \*****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15265,9 +15254,9 @@ exports.default = _default;
 
 /***/ }),
 /* 67 */
-/*!************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props.js ***!
-  \************************************************************************/
+/*!****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props.js ***!
+  \****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15377,9 +15366,9 @@ exports.default = _default;
 
 /***/ }),
 /* 68 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/actionSheet.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/actionSheet.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15421,9 +15410,9 @@ exports.default = _default;
 
 /***/ }),
 /* 69 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/album.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/album.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15465,9 +15454,9 @@ exports.default = _default;
 
 /***/ }),
 /* 70 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/alert.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/alert.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15504,9 +15493,9 @@ exports.default = _default;
 
 /***/ }),
 /* 71 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/avatar.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/avatar.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15549,9 +15538,9 @@ exports.default = _default;
 
 /***/ }),
 /* 72 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/avatarGroup.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/avatarGroup.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15591,9 +15580,9 @@ exports.default = _default;
 
 /***/ }),
 /* 73 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/backtop.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/backtop.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15637,9 +15626,9 @@ exports.default = _default;
 
 /***/ }),
 /* 74 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/badge.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/badge.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15683,9 +15672,9 @@ exports.default = _default;
 
 /***/ }),
 /* 75 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/button.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/button.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15742,9 +15731,9 @@ exports.default = _default;
 
 /***/ }),
 /* 76 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/calendar.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/calendar.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15805,9 +15794,9 @@ exports.default = _default;
 
 /***/ }),
 /* 77 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/carKeyboard.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/carKeyboard.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15837,9 +15826,9 @@ exports.default = _default;
 
 /***/ }),
 /* 78 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/cell.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/cell.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15889,9 +15878,9 @@ exports.default = _default;
 
 /***/ }),
 /* 79 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/cellGroup.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/cellGroup.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15923,9 +15912,9 @@ exports.default = _default;
 
 /***/ }),
 /* 80 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/checkbox.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/checkbox.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15967,9 +15956,9 @@ exports.default = _default;
 
 /***/ }),
 /* 81 */
-/*!**************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/checkboxGroup.js ***!
-  \**************************************************************************************/
+/*!******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/checkboxGroup.js ***!
+  \******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16015,9 +16004,9 @@ exports.default = _default;
 
 /***/ }),
 /* 82 */
-/*!***************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/circleProgress.js ***!
-  \***************************************************************************************/
+/*!*******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/circleProgress.js ***!
+  \*******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16047,9 +16036,9 @@ exports.default = _default;
 
 /***/ }),
 /* 83 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/code.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/code.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16084,9 +16073,9 @@ exports.default = _default;
 
 /***/ }),
 /* 84 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/codeInput.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/codeInput.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16130,9 +16119,9 @@ exports.default = _default;
 
 /***/ }),
 /* 85 */
-/*!****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/col.js ***!
-  \****************************************************************************/
+/*!********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/col.js ***!
+  \********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16166,9 +16155,9 @@ exports.default = _default;
 
 /***/ }),
 /* 86 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/collapse.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/collapse.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16200,9 +16189,9 @@ exports.default = _default;
 
 /***/ }),
 /* 87 */
-/*!*************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/collapseItem.js ***!
-  \*************************************************************************************/
+/*!*****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/collapseItem.js ***!
+  \*****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16242,9 +16231,9 @@ exports.default = _default;
 
 /***/ }),
 /* 88 */
-/*!*************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/columnNotice.js ***!
-  \*************************************************************************************/
+/*!*****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/columnNotice.js ***!
+  \*****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16283,9 +16272,9 @@ exports.default = _default;
 
 /***/ }),
 /* 89 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/countDown.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/countDown.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16318,9 +16307,9 @@ exports.default = _default;
 
 /***/ }),
 /* 90 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/countTo.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/countTo.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16360,9 +16349,9 @@ exports.default = _default;
 
 /***/ }),
 /* 91 */
-/*!***************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/datetimePicker.js ***!
-  \***************************************************************************************/
+/*!*******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/datetimePicker.js ***!
+  \*******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16415,9 +16404,9 @@ exports.default = _default;
 
 /***/ }),
 /* 92 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/divider.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/divider.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16454,9 +16443,9 @@ exports.default = _default;
 
 /***/ }),
 /* 93 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/empty.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/empty.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16496,9 +16485,9 @@ exports.default = _default;
 
 /***/ }),
 /* 94 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/form.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/form.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16541,9 +16530,9 @@ exports.default = _default;
 
 /***/ }),
 /* 95 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/formItem.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/formItem.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16581,9 +16570,9 @@ exports.default = _default;
 
 /***/ }),
 /* 96 */
-/*!****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/gap.js ***!
-  \****************************************************************************/
+/*!********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/gap.js ***!
+  \********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16617,9 +16606,9 @@ exports.default = _default;
 
 /***/ }),
 /* 97 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/grid.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/grid.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16651,9 +16640,9 @@ exports.default = _default;
 
 /***/ }),
 /* 98 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/gridItem.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/gridItem.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16684,9 +16673,9 @@ exports.default = _default;
 
 /***/ }),
 /* 99 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/icon.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/icon.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16736,9 +16725,9 @@ exports.default = _default;
 
 /***/ }),
 /* 100 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/image.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/image.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16783,9 +16772,9 @@ exports.default = _default;
 
 /***/ }),
 /* 101 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/indexAnchor.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/indexAnchor.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16819,9 +16808,9 @@ exports.default = _default;
 
 /***/ }),
 /* 102 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/indexList.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/indexList.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16857,9 +16846,9 @@ exports.default = _default;
 
 /***/ }),
 /* 103 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/input.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/input.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16922,9 +16911,9 @@ exports.default = _default;
 
 /***/ }),
 /* 104 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/keyboard.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/keyboard.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16969,9 +16958,9 @@ exports.default = _default;
 
 /***/ }),
 /* 105 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/line.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/line.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17006,9 +16995,9 @@ exports.default = _default;
 
 /***/ }),
 /* 106 */
-/*!*************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/lineProgress.js ***!
-  \*************************************************************************************/
+/*!*****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/lineProgress.js ***!
+  \*****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17042,9 +17031,9 @@ exports.default = _default;
 
 /***/ }),
 /* 107 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/link.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/link.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17084,9 +17073,9 @@ exports.default = _default;
 
 /***/ }),
 /* 108 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/list.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/list.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17129,9 +17118,9 @@ exports.default = _default;
 
 /***/ }),
 /* 109 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/listItem.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/listItem.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17161,9 +17150,9 @@ exports.default = _default;
 
 /***/ }),
 /* 110 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/loadingIcon.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/loadingIcon.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17207,9 +17196,9 @@ exports.default = _default;
 
 /***/ }),
 /* 111 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/loadingPage.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/loadingPage.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17247,9 +17236,9 @@ exports.default = _default;
 
 /***/ }),
 /* 112 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/loadmore.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/loadmore.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17296,9 +17285,9 @@ exports.default = _default;
 
 /***/ }),
 /* 113 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/modal.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/modal.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17343,9 +17332,9 @@ exports.default = _default;
 
 /***/ }),
 /* 114 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/navbar.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/navbar.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17392,9 +17381,9 @@ exports.default = _default;
 
 /***/ }),
 /* 115 */
-/*!************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/color.js ***!
-  \************************************************************************/
+/*!****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/color.js ***!
+  \****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17425,9 +17414,9 @@ exports.default = _default;
 
 /***/ }),
 /* 116 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/noNetwork.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/noNetwork.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17459,9 +17448,9 @@ exports.default = _default;
 
 /***/ }),
 /* 117 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/noticeBar.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/noticeBar.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17505,9 +17494,9 @@ exports.default = _default;
 
 /***/ }),
 /* 118 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/notify.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/notify.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17544,9 +17533,9 @@ exports.default = _default;
 
 /***/ }),
 /* 119 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/numberBox.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/numberBox.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17596,9 +17585,9 @@ exports.default = _default;
 
 /***/ }),
 /* 120 */
-/*!***************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/numberKeyboard.js ***!
-  \***************************************************************************************/
+/*!*******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/numberKeyboard.js ***!
+  \*******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17630,9 +17619,9 @@ exports.default = _default;
 
 /***/ }),
 /* 121 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/overlay.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/overlay.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17665,9 +17654,9 @@ exports.default = _default;
 
 /***/ }),
 /* 122 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/parse.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/parse.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17704,9 +17693,9 @@ exports.default = _default;
 
 /***/ }),
 /* 123 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/picker.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/picker.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17754,9 +17743,9 @@ exports.default = _default;
 
 /***/ }),
 /* 124 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/popup.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/popup.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17800,9 +17789,9 @@ exports.default = _default;
 
 /***/ }),
 /* 125 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/radio.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/radio.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17844,9 +17833,9 @@ exports.default = _default;
 
 /***/ }),
 /* 126 */
-/*!***********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/radioGroup.js ***!
-  \***********************************************************************************/
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/radioGroup.js ***!
+  \***************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17891,9 +17880,9 @@ exports.default = _default;
 
 /***/ }),
 /* 127 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/rate.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/rate.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17934,9 +17923,9 @@ exports.default = _default;
 
 /***/ }),
 /* 128 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/readMore.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/readMore.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17973,9 +17962,9 @@ exports.default = _default;
 
 /***/ }),
 /* 129 */
-/*!****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/row.js ***!
-  \****************************************************************************/
+/*!********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/row.js ***!
+  \********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18007,9 +17996,9 @@ exports.default = _default;
 
 /***/ }),
 /* 130 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/rowNotice.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/rowNotice.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18045,9 +18034,9 @@ exports.default = _default;
 
 /***/ }),
 /* 131 */
-/*!***********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/scrollList.js ***!
-  \***********************************************************************************/
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/scrollList.js ***!
+  \***************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18082,9 +18071,9 @@ exports.default = _default;
 
 /***/ }),
 /* 132 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/search.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/search.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18140,9 +18129,9 @@ exports.default = _default;
 
 /***/ }),
 /* 133 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/section.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/section.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18181,9 +18170,9 @@ exports.default = _default;
 
 /***/ }),
 /* 134 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/skeleton.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/skeleton.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18223,9 +18212,9 @@ exports.default = _default;
 
 /***/ }),
 /* 135 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/slider.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/slider.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18265,9 +18254,9 @@ exports.default = _default;
 
 /***/ }),
 /* 136 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/statusBar.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/statusBar.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18297,9 +18286,9 @@ exports.default = _default;
 
 /***/ }),
 /* 137 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/steps.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/steps.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18335,9 +18324,9 @@ exports.default = _default;
 
 /***/ }),
 /* 138 */
-/*!**********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/stepsItem.js ***!
-  \**********************************************************************************/
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/stepsItem.js ***!
+  \**************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18370,9 +18359,9 @@ exports.default = _default;
 
 /***/ }),
 /* 139 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/sticky.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/sticky.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18407,9 +18396,9 @@ exports.default = _default;
 
 /***/ }),
 /* 140 */
-/*!***********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/subsection.js ***!
-  \***********************************************************************************/
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/subsection.js ***!
+  \***************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18447,9 +18436,9 @@ exports.default = _default;
 
 /***/ }),
 /* 141 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/swipeAction.js ***!
-  \************************************************************************************/
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/swipeAction.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18479,9 +18468,9 @@ exports.default = _default;
 
 /***/ }),
 /* 142 */
-/*!****************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/swipeActionItem.js ***!
-  \****************************************************************************************/
+/*!********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/swipeActionItem.js ***!
+  \********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18517,9 +18506,9 @@ exports.default = _default;
 
 /***/ }),
 /* 143 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/swiper.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/swiper.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18574,9 +18563,9 @@ exports.default = _default;
 
 /***/ }),
 /* 144 */
-/*!*****************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/swipterIndicator.js ***!
-  \*****************************************************************************************/
+/*!*********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/swipterIndicator.js ***!
+  \*********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18610,9 +18599,9 @@ exports.default = _default;
 
 /***/ }),
 /* 145 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/switch.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/switch.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18651,9 +18640,9 @@ exports.default = _default;
 
 /***/ }),
 /* 146 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/tabbar.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/tabbar.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18690,9 +18679,9 @@ exports.default = _default;
 
 /***/ }),
 /* 147 */
-/*!***********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/tabbarItem.js ***!
-  \***********************************************************************************/
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/tabbarItem.js ***!
+  \***************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18727,9 +18716,9 @@ exports.default = _default;
 
 /***/ }),
 /* 148 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/tabs.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/tabs.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18784,9 +18773,9 @@ exports.default = _default;
 
 /***/ }),
 /* 149 */
-/*!****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/tag.js ***!
-  \****************************************************************************/
+/*!********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/tag.js ***!
+  \********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18830,9 +18819,9 @@ exports.default = _default;
 
 /***/ }),
 /* 150 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/text.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/text.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18886,9 +18875,9 @@ exports.default = _default;
 
 /***/ }),
 /* 151 */
-/*!*********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/textarea.js ***!
-  \*********************************************************************************/
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/textarea.js ***!
+  \*************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18939,9 +18928,9 @@ exports.default = _default;
 
 /***/ }),
 /* 152 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/toast.js ***!
-  \******************************************************************************/
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/toast.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -18985,9 +18974,9 @@ exports.default = _default;
 
 /***/ }),
 /* 153 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/toolbar.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/toolbar.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19022,9 +19011,9 @@ exports.default = _default;
 
 /***/ }),
 /* 154 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/tooltip.js ***!
-  \********************************************************************************/
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/tooltip.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19066,9 +19055,9 @@ exports.default = _default;
 
 /***/ }),
 /* 155 */
-/*!***********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/transition.js ***!
-  \***********************************************************************************/
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/transition.js ***!
+  \***************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19101,9 +19090,9 @@ exports.default = _default;
 
 /***/ }),
 /* 156 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/props/upload.js ***!
-  \*******************************************************************************/
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/props/upload.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19160,9 +19149,9 @@ exports.default = _default;
 
 /***/ }),
 /* 157 */
-/*!*************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/config/zIndex.js ***!
-  \*************************************************************************/
+/*!*****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/config/zIndex.js ***!
+  \*****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19196,9 +19185,9 @@ exports.default = _default;
 
 /***/ }),
 /* 158 */
-/*!*****************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/function/platform.js ***!
-  \*****************************************************************************/
+/*!*********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/function/platform.js ***!
+  \*********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19226,9 +19215,9 @@ exports.default = _default;
 
 /***/ }),
 /* 159 */
-/*!************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/config/request.js ***!
-  \************************************************/
+/*!****************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/config/request.js ***!
+  \****************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19301,9 +19290,9 @@ module.exports = function (vm) {
 
 /***/ }),
 /* 160 */
-/*!***********************************************!*\
-  !*** E:/STUDY/my/beiTangShi/config/config.js ***!
-  \***********************************************/
+/*!***************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/config/config.js ***!
+  \***************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19355,9 +19344,9 @@ exports.qyCodeObj = qyCodeObj;
 /* 165 */,
 /* 166 */,
 /* 167 */
-/*!**************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/pages/index/data.js ***!
-  \**************************************************/
+/*!******************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/pages/index/data.js ***!
+  \******************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19367,7 +19356,8 @@ exports.qyCodeObj = qyCodeObj;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Data = void 0;
+exports.poemStr = exports.Data = void 0;
+exports.setPoemObj = setPoemObj;
 var Data = {
   poem: [{
     title: '《咏柳》',
@@ -19391,7 +19381,23 @@ var Data = {
     poemWord: "\u65E5\u7167\u9999\u7089\u751F\u7D2B\u70DF\uFF0C\n\t\t\u9065\u770B\u7011\u5E03\u6302\u524D\u5DDD\u3002\n\t\t\u98DE\u6D41\u76F4\u4E0B\u4E09\u5343\u5C3A\uFF0C\n\t\t\u7591\u662F\u94F6\u6CB3\u843D\u4E5D\u5929\u3002"
   }]
 };
+// 踏马的，简单点
 exports.Data = Data;
+var poemStr = ['`芙蓉楼送辛渐	唐·王昌龄	寒雨连江夜入吴，平明送客楚山孤。洛阳亲友如相问，一片冰心在玉壶。`', "\u60AF\u519C\uFF08\u5176\u4E00\uFF09\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002", "\u9759\u591C\u601D\t\u5510\xB7\u674E\u767D\t\u5E8A\u524D\u660E\u6708\u5149\uFF0C\u7591\u662F\u5730\u4E0A\u971C\u3002\u4E3E\u5934\u671B\u660E\u6708\uFF0C\u4F4E\u5934\u601D\u6545\u4E61\u3002", "\u53E4\u98CE\u4E8C\u9996 / \u60AF\u519C\u4E8C\u9996\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u60AF\u519C\t\u5510\xB7\u674E\u7EC5\t\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u6625\u591C\u559C\u96E8\t\u5510\xB7\u675C\u752B\t\u597D\u96E8\u77E5\u65F6\u8282\uFF0C\u5F53\u6625\u4E43\u53D1\u751F\u3002\u968F\u98CE\u6F5C\u5165\u591C\uFF0C\u6DA6\u7269\u7EC6\u65E0\u58F0\u3002\u91CE\u5F84\u4E91\u4FF1\u9ED1\uFF0C\u6C5F\u8239\u706B\u72EC\u660E\u3002\u6653\u770B\u7EA2\u6E7F\u5904\uFF0C\u82B1\u91CD\u9526\u5B98\u57CE\u3002", "\u7EDD\u53E5\t\u5510\xB7\u675C\u752B\t\u4E24\u4E2A\u9EC4\u9E42\u9E23\u7FE0\u67F3\uFF0C\u4E00\u884C\u767D\u9E6D\u4E0A\u9752\u5929\u3002\u7A97\u542B\u897F\u5CAD\u5343\u79CB\u96EA\uFF0C\u95E8\u6CCA\u4E1C\u5434\u4E07\u91CC\u8239\u3002", "\u4E5D\u6708\u4E5D\u65E5\u5FC6\u5C71\u4E1C\u5144\u5F1F\t\u5510\xB7\u738B\u7EF4\t\u72EC\u5728\u5F02\u4E61\u4E3A\u5F02\u5BA2\uFF0C\u6BCF\u9022\u4F73\u8282\u500D\u601D\u4EB2\u3002\u9065\u77E5\u5144\u5F1F\u767B\u9AD8\u5904\uFF0C\u904D\u63D2\u8331\u8438\u5C11\u4E00\u4EBA\u3002", "\u6C5F\u96EA\t\u5510\xB7\u67F3\u5B97\u5143\t\u5343\u5C71\u9E1F\u98DE\u7EDD\uFF0C\u4E07\u5F84\u4EBA\u8E2A\u706D\u3002\u5B64\u821F\u84D1\u7B20\u7FC1\uFF0C\u72EC\u9493\u5BD2\u6C5F\u96EA\u3002", "\u591C\u96E8\u5BC4\u5317\t\u5510\xB7\u674E\u5546\u9690\t\u541B\u95EE\u5F52\u671F\u672A\u6709\u671F\uFF0C\u5DF4\u5C71\u591C\u96E8\u6DA8\u79CB\u6C60\u3002\u4F55\u5F53\u5171\u526A\u897F\u7A97\u70DB\uFF0C\u5374\u8BDD\u5DF4\u5C71\u591C\u96E8\u65F6\u3002", "\u65E9\u53D1\u767D\u5E1D\u57CE\t\u5510\xB7\u674E\u767D\t\u671D\u8F9E\u767D\u5E1D\u5F69\u4E91\u95F4\uFF0C\u5343\u91CC\u6C5F\u9675\u4E00\u65E5\u8FD8\u3002\u4E24\u5CB8\u733F\u58F0\u557C\u4E0D\u4F4F\uFF0C\u8F7B\u821F\u5DF2\u8FC7\u4E07\u91CD\u5C71\u3002", "\u67AB\u6865\u591C\u6CCA\t\u5510\xB7\u5F20\u7EE7\t\u6708\u843D\u4E4C\u557C\u971C\u6EE1\u5929\uFF0C\u6C5F\u67AB\u6E14\u706B\u5BF9\u6101\u7720\u3002\u59D1\u82CF\u57CE\u5916\u5BD2\u5C71\u5BFA\uFF0C\u591C\u534A\u949F\u58F0\u5230\u5BA2\u8239\u3002", "\u767D\u96EA\u6B4C\u9001\u6B66\u5224\u5B98\u5F52\u4EAC\t\u5510\xB7\u5C91\u53C2\t\u5317\u98CE\u5377\u5730\u767D\u8349\u6298\uFF0C\u80E1\u5929\u516B\u6708\u5373\u98DE\u96EA\u3002\u5FFD\u5982\u4E00\u591C\u6625\u98CE\u6765\uFF0C\u5343\u6811\u4E07\u6811\u68A8\u82B1\u5F00\u3002\u6563\u5165\u73E0\u5E18\u6E7F\u7F57\u5E55\uFF0C\u72D0\u88D8\u4E0D\u6696\u9526\u887E\u8584\u3002\u5C06\u519B\u89D2\u5F13\u4E0D\u5F97\u63A7\uFF0C\u90FD\u62A4\u94C1\u8863\u51B7\u96BE\u7740\u3002\u701A\u6D77\u9611\u5E72\u767E\u4E08\u51B0\uFF0C\u6101\u4E91\u60E8\u6DE1\u4E07\u91CC\u51DD\u3002\u4E2D\u519B\u7F6E\u9152\u996E\u5F52\u5BA2\uFF0C\u80E1\u7434\u7435\u7436\u4E0E\u7F8C\u7B1B\u3002\u7EB7\u7EB7\u66AE\u96EA\u4E0B\u8F95\u95E8\uFF0C\u98CE\u63A3\u7EA2\u65D7\u51BB\u4E0D\u7FFB\u3002\u8F6E\u53F0\u4E1C\u95E8\u9001\u541B\u53BB\uFF0C\u53BB\u65F6\u96EA\u6EE1\u5929\u5C71\u8DEF\u3002\u5C71\u56DE\u8DEF\u8F6C\u4E0D\u89C1\u541B\uFF0C\u96EA\u4E0A\u7A7A\u7559\u9A6C\u884C\u5904\u3002", "\u5BFB\u9690\u8005\u4E0D\u9047\t\u5510\xB7\u8D3E\u5C9B\t\u677E\u4E0B\u95EE\u7AE5\u5B50\uFF0C\u8A00\u5E08\u91C7\u836F\u53BB\u3002\u53EA\u5728\u6B64\u5C71\u4E2D\uFF0C\u4E91\u6DF1\u4E0D\u77E5\u5904\u3002", "\u76F8\u601D\t\u5510\xB7\u738B\u7EF4\t\u7EA2\u8C46\u751F\u5357\u56FD\uFF0C\u6625\u6765\u53D1\u51E0\u679D\u3002\u613F\u541B\u591A\u91C7\u64B7\uFF0C\u6B64\u7269\u6700\u76F8\u601D\u3002", "\u8FC7\u6545\u4EBA\u5E84\t\u5510\xB7\u5B5F\u6D69\u7136\t\u6545\u4EBA\u5177\u9E21\u9ECD\uFF0C\u9080\u6211\u81F3\u7530\u5BB6\u3002\u7EFF\u6811\u6751\u8FB9\u5408\uFF0C\u9752\u5C71\u90ED\u5916\u659C\u3002\u5F00\u8F69\u9762\u573A\u5703\uFF0C\u628A\u9152\u8BDD\u6851\u9EBB\u3002\u5F85\u5230\u91CD\u9633\u65E5\uFF0C\u8FD8\u6765\u5C31\u83CA\u82B1\u3002", "\u9E1F\u9E23\u6DA7\t\u5510\xB7\u738B\u7EF4\t\u4EBA\u95F2\u6842\u82B1\u843D\uFF0C\u591C\u9759\u6625\u5C71\u7A7A\u3002\u6708\u51FA\u60CA\u5C71\u9E1F\uFF0C\u65F6\u9E23\u6625\u6DA7\u4E2D\u3002", "\u8349 / \u8D4B\u5F97\u53E4\u539F\u8349\u9001\u522B\t\u5510\xB7\u767D\u5C45\u6613\t\u79BB\u79BB\u539F\u4E0A\u8349\uFF0C\u4E00\u5C81\u4E00\u67AF\u8363\u3002\u91CE\u706B\u70E7\u4E0D\u5C3D\uFF0C\u6625\u98CE\u5439\u53C8\u751F\u3002\u8FDC\u82B3\u4FB5\u53E4\u9053\uFF0C\u6674\u7FE0\u63A5\u8352\u57CE\u3002\u53C8\u9001\u738B\u5B59\u53BB\uFF0C\u840B\u840B\u6EE1\u522B\u60C5\u3002"];
+exports.poemStr = poemStr;
+function setPoemObj(str) {
+  console.log('strsetPoemObj');
+  var poemArr = str.split(/\s/g);
+  var title = "\u300A".concat(poemArr[0], "\u300B");
+  var author = poemArr[1];
+  var poemWord = poemArr[2];
+  return {
+    title: title,
+    author: author,
+    poemWord: poemWord
+  };
+}
+// let poemArr = poemStr.map(item => setPoemObj(item))
 
 /***/ }),
 /* 168 */,
@@ -19402,10 +19408,18 @@ exports.Data = Data;
 /* 173 */,
 /* 174 */,
 /* 175 */,
-/* 176 */
-/*!***********************************************!*\
-  !*** E:/STUDY/my/beiTangShi/pages/my/data.js ***!
-  \***********************************************/
+/* 176 */,
+/* 177 */,
+/* 178 */,
+/* 179 */,
+/* 180 */,
+/* 181 */,
+/* 182 */,
+/* 183 */,
+/* 184 */
+/*!***************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/pages/my/data.js ***!
+  \***************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19441,17 +19455,17 @@ var Data = {
 exports.Data = Data;
 
 /***/ }),
-/* 177 */,
-/* 178 */,
-/* 179 */,
-/* 180 */,
-/* 181 */,
-/* 182 */,
-/* 183 */,
-/* 184 */
-/*!*******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-alert/props.js ***!
-  \*******************************************************************************/
+/* 185 */,
+/* 186 */,
+/* 187 */,
+/* 188 */,
+/* 189 */,
+/* 190 */,
+/* 191 */,
+/* 192 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-alert/props.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19510,17 +19524,17 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 185 */,
-/* 186 */,
-/* 187 */,
-/* 188 */,
-/* 189 */,
-/* 190 */,
-/* 191 */,
-/* 192 */
-/*!************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/mixin/button.js ***!
-  \************************************************************************/
+/* 193 */,
+/* 194 */,
+/* 195 */,
+/* 196 */,
+/* 197 */,
+/* 198 */,
+/* 199 */,
+/* 200 */
+/*!****************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/mixin/button.js ***!
+  \****************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19547,10 +19561,10 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 193 */
-/*!**************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/libs/mixin/openType.js ***!
-  \**************************************************************************/
+/* 201 */
+/*!******************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/mixin/openType.js ***!
+  \******************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19589,10 +19603,10 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 194 */
-/*!********************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-button/props.js ***!
-  \********************************************************************************/
+/* 202 */
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-button/props.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19768,17 +19782,17 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 195 */,
-/* 196 */,
-/* 197 */,
-/* 198 */,
-/* 199 */,
-/* 200 */,
-/* 201 */,
-/* 202 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-count-down/props.js ***!
-  \************************************************************************************/
+/* 203 */,
+/* 204 */,
+/* 205 */,
+/* 206 */,
+/* 207 */,
+/* 208 */,
+/* 209 */,
+/* 210 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-count-down/props.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19817,10 +19831,10 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 203 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-count-down/utils.js ***!
-  \************************************************************************************/
+/* 211 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-count-down/utils.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19896,17 +19910,651 @@ function isSameSecond(time1, time2) {
 }
 
 /***/ }),
-/* 204 */,
-/* 205 */,
-/* 206 */,
-/* 207 */,
-/* 208 */,
-/* 209 */,
-/* 210 */,
-/* 211 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-transition/props.js ***!
-  \************************************************************************************/
+/* 212 */,
+/* 213 */,
+/* 214 */,
+/* 215 */,
+/* 216 */,
+/* 217 */,
+/* 218 */,
+/* 219 */
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-form/props.js ***!
+  \**********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 当前form的需要验证字段的集合
+    model: {
+      type: Object,
+      default: uni.$u.props.form.model
+    },
+    // 验证规则
+    rules: {
+      type: [Object, Function, Array],
+      default: uni.$u.props.form.rules
+    },
+    // 有错误时的提示方式，message-提示信息，toast-进行toast提示
+    // border-bottom-下边框呈现红色，none-无提示
+    errorType: {
+      type: String,
+      default: uni.$u.props.form.errorType
+    },
+    // 是否显示表单域的下划线边框
+    borderBottom: {
+      type: Boolean,
+      default: uni.$u.props.form.borderBottom
+    },
+    // label的位置，left-左边，top-上边
+    labelPosition: {
+      type: String,
+      default: uni.$u.props.form.labelPosition
+    },
+    // label的宽度，单位px
+    labelWidth: {
+      type: [String, Number],
+      default: uni.$u.props.form.labelWidth
+    },
+    // lable字体的对齐方式
+    labelAlign: {
+      type: String,
+      default: uni.$u.props.form.labelAlign
+    },
+    // lable的样式，对象形式
+    labelStyle: {
+      type: Object,
+      default: uni.$u.props.form.labelStyle
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 220 */,
+/* 221 */,
+/* 222 */,
+/* 223 */,
+/* 224 */,
+/* 225 */
+/*!***************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-form-item/props.js ***!
+  \***************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // input的label提示语
+    label: {
+      type: String,
+      default: uni.$u.props.formItem.label
+    },
+    // 绑定的值
+    prop: {
+      type: String,
+      default: uni.$u.props.formItem.prop
+    },
+    // 是否显示表单域的下划线边框
+    borderBottom: {
+      type: [String, Boolean],
+      default: uni.$u.props.formItem.borderBottom
+    },
+    // label的位置，left-左边，top-上边
+    labelPosition: {
+      type: String,
+      default: uni.$u.props.formItem.labelPosition
+    },
+    // label的宽度，单位px
+    labelWidth: {
+      type: [String, Number],
+      default: uni.$u.props.formItem.labelWidth
+    },
+    // 右侧图标
+    rightIcon: {
+      type: String,
+      default: uni.$u.props.formItem.rightIcon
+    },
+    // 左侧图标
+    leftIcon: {
+      type: String,
+      default: uni.$u.props.formItem.leftIcon
+    },
+    // 是否显示左边的必填星号，只作显示用，具体校验必填的逻辑，请在rules中配置
+    required: {
+      type: Boolean,
+      default: uni.$u.props.formItem.required
+    },
+    leftIconStyle: {
+      type: [String, Object],
+      default: uni.$u.props.formItem.leftIconStyle
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 226 */,
+/* 227 */,
+/* 228 */,
+/* 229 */,
+/* 230 */,
+/* 231 */,
+/* 232 */,
+/* 233 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-input/props.js ***!
+  \***********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 输入的值
+    value: {
+      type: [String, Number],
+      default: uni.$u.props.input.value
+    },
+    // 输入框类型
+    // number-数字输入键盘，app-vue下可以输入浮点数，app-nvue和小程序平台下只能输入整数
+    // idcard-身份证输入键盘，微信、支付宝、百度、QQ小程序
+    // digit-带小数点的数字键盘，App的nvue页面、微信、支付宝、百度、头条、QQ小程序
+    // text-文本输入键盘
+    type: {
+      type: String,
+      default: uni.$u.props.input.type
+    },
+    // 如果 textarea 是在一个 position:fixed 的区域，需要显示指定属性 fixed 为 true，
+    // 兼容性：微信小程序、百度小程序、字节跳动小程序、QQ小程序
+    fixed: {
+      type: Boolean,
+      default: uni.$u.props.input.fixed
+    },
+    // 是否禁用输入框
+    disabled: {
+      type: Boolean,
+      default: uni.$u.props.input.disabled
+    },
+    // 禁用状态时的背景色
+    disabledColor: {
+      type: String,
+      default: uni.$u.props.input.disabledColor
+    },
+    // 是否显示清除控件
+    clearable: {
+      type: Boolean,
+      default: uni.$u.props.input.clearable
+    },
+    // 是否密码类型
+    password: {
+      type: Boolean,
+      default: uni.$u.props.input.password
+    },
+    // 最大输入长度，设置为 -1 的时候不限制最大长度
+    maxlength: {
+      type: [String, Number],
+      default: uni.$u.props.input.maxlength
+    },
+    // 	输入框为空时的占位符
+    placeholder: {
+      type: String,
+      default: uni.$u.props.input.placeholder
+    },
+    // 指定placeholder的样式类，注意页面或组件的style中写了scoped时，需要在类名前写/deep/
+    placeholderClass: {
+      type: String,
+      default: uni.$u.props.input.placeholderClass
+    },
+    // 指定placeholder的样式
+    placeholderStyle: {
+      type: [String, Object],
+      default: uni.$u.props.input.placeholderStyle
+    },
+    // 是否显示输入字数统计，只在 type ="text"或type ="textarea"时有效
+    showWordLimit: {
+      type: Boolean,
+      default: uni.$u.props.input.showWordLimit
+    },
+    // 设置右下角按钮的文字，有效值：send|search|next|go|done，兼容性详见uni-app文档
+    // https://uniapp.dcloud.io/component/input
+    // https://uniapp.dcloud.io/component/textarea
+    confirmType: {
+      type: String,
+      default: uni.$u.props.input.confirmType
+    },
+    // 点击键盘右下角按钮时是否保持键盘不收起，H5无效
+    confirmHold: {
+      type: Boolean,
+      default: uni.$u.props.input.confirmHold
+    },
+    // focus时，点击页面的时候不收起键盘，微信小程序有效
+    holdKeyboard: {
+      type: Boolean,
+      default: uni.$u.props.input.holdKeyboard
+    },
+    // 自动获取焦点
+    // 在 H5 平台能否聚焦以及软键盘是否跟随弹出，取决于当前浏览器本身的实现。nvue 页面不支持，需使用组件的 focus()、blur() 方法控制焦点
+    focus: {
+      type: Boolean,
+      default: uni.$u.props.input.focus
+    },
+    // 键盘收起时，是否自动失去焦点，目前仅App3.0.0+有效
+    autoBlur: {
+      type: Boolean,
+      default: uni.$u.props.input.autoBlur
+    },
+    // 是否去掉 iOS 下的默认内边距，仅微信小程序，且type=textarea时有效
+    disableDefaultPadding: {
+      type: Boolean,
+      default: uni.$u.props.input.disableDefaultPadding
+    },
+    // 指定focus时光标的位置
+    cursor: {
+      type: [String, Number],
+      default: uni.$u.props.input.cursor
+    },
+    // 输入框聚焦时底部与键盘的距离
+    cursorSpacing: {
+      type: [String, Number],
+      default: uni.$u.props.input.cursorSpacing
+    },
+    // 光标起始位置，自动聚集时有效，需与selection-end搭配使用
+    selectionStart: {
+      type: [String, Number],
+      default: uni.$u.props.input.selectionStart
+    },
+    // 光标结束位置，自动聚集时有效，需与selection-start搭配使用
+    selectionEnd: {
+      type: [String, Number],
+      default: uni.$u.props.input.selectionEnd
+    },
+    // 键盘弹起时，是否自动上推页面
+    adjustPosition: {
+      type: Boolean,
+      default: uni.$u.props.input.adjustPosition
+    },
+    // 输入框内容对齐方式，可选值为：left|center|right
+    inputAlign: {
+      type: String,
+      default: uni.$u.props.input.inputAlign
+    },
+    // 输入框字体的大小
+    fontSize: {
+      type: [String, Number],
+      default: uni.$u.props.input.fontSize
+    },
+    // 输入框字体颜色
+    color: {
+      type: String,
+      default: uni.$u.props.input.color
+    },
+    // 输入框前置图标
+    prefixIcon: {
+      type: String,
+      default: uni.$u.props.input.prefixIcon
+    },
+    // 前置图标样式，对象或字符串
+    prefixIconStyle: {
+      type: [String, Object],
+      default: uni.$u.props.input.prefixIconStyle
+    },
+    // 输入框后置图标
+    suffixIcon: {
+      type: String,
+      default: uni.$u.props.input.suffixIcon
+    },
+    // 后置图标样式，对象或字符串
+    suffixIconStyle: {
+      type: [String, Object],
+      default: uni.$u.props.input.suffixIconStyle
+    },
+    // 边框类型，surround-四周边框，bottom-底部边框，none-无边框
+    border: {
+      type: String,
+      default: uni.$u.props.input.border
+    },
+    // 是否只读，与disabled不同之处在于disabled会置灰组件，而readonly则不会
+    readonly: {
+      type: Boolean,
+      default: uni.$u.props.input.readonly
+    },
+    // 输入框形状，circle-圆形，square-方形
+    shape: {
+      type: String,
+      default: uni.$u.props.input.shape
+    },
+    // 用于处理或者过滤输入框内容的方法
+    formatter: {
+      type: [Function, null],
+      default: uni.$u.props.input.formatter
+    },
+    // 是否忽略组件内对文本合成系统事件的处理
+    ignoreCompositionEvent: {
+      type: Boolean,
+      default: true
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 234 */,
+/* 235 */,
+/* 236 */,
+/* 237 */,
+/* 238 */,
+/* 239 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-cell-group/props.js ***!
+  \****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 分组标题
+    title: {
+      type: String,
+      default: uni.$u.props.cellGroup.title
+    },
+    // 是否显示外边框
+    border: {
+      type: Boolean,
+      default: uni.$u.props.cellGroup.border
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 240 */,
+/* 241 */,
+/* 242 */,
+/* 243 */,
+/* 244 */,
+/* 245 */,
+/* 246 */,
+/* 247 */
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-cell/props.js ***!
+  \**********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default2 = {
+  props: {
+    // 标题
+    title: {
+      type: [String, Number],
+      default: uni.$u.props.cell.title
+    },
+    // 标题下方的描述信息
+    label: {
+      type: [String, Number],
+      default: uni.$u.props.cell.label
+    },
+    // 右侧的内容
+    value: {
+      type: [String, Number],
+      default: uni.$u.props.cell.value
+    },
+    // 左侧图标名称，或者图片链接(本地文件建议使用绝对地址)
+    icon: {
+      type: String,
+      default: uni.$u.props.cell.icon
+    },
+    // 是否禁用cell
+    disabled: {
+      type: Boolean,
+      default: uni.$u.props.cell.disabled
+    },
+    // 是否显示下边框
+    border: {
+      type: Boolean,
+      default: uni.$u.props.cell.border
+    },
+    // 内容是否垂直居中(主要是针对右侧的value部分)
+    center: {
+      type: Boolean,
+      default: uni.$u.props.cell.center
+    },
+    // 点击后跳转的URL地址
+    url: {
+      type: String,
+      default: uni.$u.props.cell.url
+    },
+    // 链接跳转的方式，内部使用的是uView封装的route方法，可能会进行拦截操作
+    linkType: {
+      type: String,
+      default: uni.$u.props.cell.linkType
+    },
+    // 是否开启点击反馈(表现为点击时加上灰色背景)
+    clickable: {
+      type: Boolean,
+      default: uni.$u.props.cell.clickable
+    },
+    // 是否展示右侧箭头并开启点击反馈
+    isLink: {
+      type: Boolean,
+      default: uni.$u.props.cell.isLink
+    },
+    // 是否显示表单状态下的必填星号(此组件可能会内嵌入input组件)
+    required: {
+      type: Boolean,
+      default: uni.$u.props.cell.required
+    },
+    // 右侧的图标箭头
+    rightIcon: {
+      type: String,
+      default: uni.$u.props.cell.rightIcon
+    },
+    // 右侧箭头的方向，可选值为：left，up，down
+    arrowDirection: {
+      type: String,
+      default: uni.$u.props.cell.arrowDirection
+    },
+    // 左侧图标样式
+    iconStyle: {
+      type: [Object, String],
+      default: function _default() {
+        return uni.$u.props.cell.iconStyle;
+      }
+    },
+    // 右侧箭头图标的样式
+    rightIconStyle: {
+      type: [Object, String],
+      default: function _default() {
+        return uni.$u.props.cell.rightIconStyle;
+      }
+    },
+    // 标题的样式
+    titleStyle: {
+      type: [Object, String],
+      default: function _default() {
+        return uni.$u.props.cell.titleStyle;
+      }
+    },
+    // 单位元的大小，可选值为large
+    size: {
+      type: String,
+      default: uni.$u.props.cell.size
+    },
+    // 点击cell是否阻止事件传播
+    stop: {
+      type: Boolean,
+      default: uni.$u.props.cell.stop
+    },
+    // 标识符，cell被点击时返回
+    name: {
+      type: [Number, String],
+      default: uni.$u.props.cell.name
+    }
+  }
+};
+exports.default = _default2;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 248 */,
+/* 249 */,
+/* 250 */,
+/* 251 */,
+/* 252 */,
+/* 253 */,
+/* 254 */,
+/* 255 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-modal/props.js ***!
+  \***********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 是否展示modal
+    show: {
+      type: Boolean,
+      default: uni.$u.props.modal.show
+    },
+    // 标题
+    title: {
+      type: [String],
+      default: uni.$u.props.modal.title
+    },
+    // 弹窗内容
+    content: {
+      type: String,
+      default: uni.$u.props.modal.content
+    },
+    // 确认文案
+    confirmText: {
+      type: String,
+      default: uni.$u.props.modal.confirmText
+    },
+    // 取消文案
+    cancelText: {
+      type: String,
+      default: uni.$u.props.modal.cancelText
+    },
+    // 是否显示确认按钮
+    showConfirmButton: {
+      type: Boolean,
+      default: uni.$u.props.modal.showConfirmButton
+    },
+    // 是否显示取消按钮
+    showCancelButton: {
+      type: Boolean,
+      default: uni.$u.props.modal.showCancelButton
+    },
+    // 确认按钮颜色
+    confirmColor: {
+      type: String,
+      default: uni.$u.props.modal.confirmColor
+    },
+    // 取消文字颜色
+    cancelColor: {
+      type: String,
+      default: uni.$u.props.modal.cancelColor
+    },
+    // 对调确认和取消的位置
+    buttonReverse: {
+      type: Boolean,
+      default: uni.$u.props.modal.buttonReverse
+    },
+    // 是否开启缩放效果
+    zoom: {
+      type: Boolean,
+      default: uni.$u.props.modal.zoom
+    },
+    // 是否异步关闭，只对确定按钮有效
+    asyncClose: {
+      type: Boolean,
+      default: uni.$u.props.modal.asyncClose
+    },
+    // 是否允许点击遮罩关闭modal
+    closeOnClickOverlay: {
+      type: Boolean,
+      default: uni.$u.props.modal.closeOnClickOverlay
+    },
+    // 给一个负的margin-top，往上偏移，避免和键盘重合的情况
+    negativeTop: {
+      type: [String, Number],
+      default: uni.$u.props.modal.negativeTop
+    },
+    // modal宽度，不支持百分比，可以数值，px，rpx单位
+    width: {
+      type: [String, Number],
+      default: uni.$u.props.modal.width
+    },
+    // 确认按钮的样式，circle-圆形，square-方形，如设置，将不会显示取消按钮
+    confirmButtonShape: {
+      type: String,
+      default: uni.$u.props.modal.confirmButtonShape
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 256 */,
+/* 257 */,
+/* 258 */,
+/* 259 */,
+/* 260 */,
+/* 261 */,
+/* 262 */,
+/* 263 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/props.js ***!
+  \****************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19945,10 +20593,10 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 212 */
-/*!*****************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-transition/transition.js ***!
-  \*****************************************************************************************/
+/* 264 */
+/*!*********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/transition.js ***!
+  \*********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -19962,7 +20610,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _regenerator = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/regenerator */ 56));
 var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ 58));
-var _nvueAniMap = _interopRequireDefault(__webpack_require__(/*! ./nvue.ani-map.js */ 213));
+var _nvueAniMap = _interopRequireDefault(__webpack_require__(/*! ./nvue.ani-map.js */ 265));
 // 定义一个一定时间后自动成功的promise，让调用nextTick方法处，进入下一个then方法
 var nextTick = function nextTick() {
   return new Promise(function (resolve) {
@@ -20054,10 +20702,10 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 213 */
-/*!*******************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-transition/nvue.ani-map.js ***!
-  \*******************************************************************************************/
+/* 265 */
+/*!***********************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/nvue.ani-map.js ***!
+  \***********************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20247,17 +20895,17 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 214 */,
-/* 215 */,
-/* 216 */,
-/* 217 */,
-/* 218 */,
-/* 219 */,
-/* 220 */,
-/* 221 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-icon/icons.js ***!
-  \******************************************************************************/
+/* 266 */,
+/* 267 */,
+/* 268 */,
+/* 269 */,
+/* 270 */,
+/* 271 */,
+/* 272 */,
+/* 273 */
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-icon/icons.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20485,10 +21133,10 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 222 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-icon/props.js ***!
-  \******************************************************************************/
+/* 274 */
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-icon/props.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20592,17 +21240,17 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 223 */,
-/* 224 */,
-/* 225 */,
-/* 226 */,
-/* 227 */,
-/* 228 */,
-/* 229 */,
-/* 230 */
-/*!**************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-loading-icon/props.js ***!
-  \**************************************************************************************/
+/* 275 */,
+/* 276 */,
+/* 277 */,
+/* 278 */,
+/* 279 */,
+/* 280 */,
+/* 281 */,
+/* 282 */
+/*!******************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-loading-icon/props.js ***!
+  \******************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20676,161 +21324,1563 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 231 */,
-/* 232 */,
-/* 233 */,
-/* 234 */,
-/* 235 */,
-/* 236 */,
-/* 237 */,
-/* 238 */,
-/* 239 */,
-/* 240 */,
-/* 241 */,
-/* 242 */,
-/* 243 */,
-/* 244 */,
-/* 245 */,
-/* 246 */,
-/* 247 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-cell/props.js ***!
-  \******************************************************************************/
+/* 283 */,
+/* 284 */,
+/* 285 */,
+/* 286 */,
+/* 287 */,
+/* 288 */,
+/* 289 */,
+/* 290 */
+/*!************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/util/async-validator.js ***!
+  \************************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
+/* WEBPACK VAR INJECTION */(function(process) {
 
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
-var _default2 = {
-  props: {
-    // 标题
-    title: {
-      type: [String, Number],
-      default: uni.$u.props.cell.title
-    },
-    // 标题下方的描述信息
-    label: {
-      type: [String, Number],
-      default: uni.$u.props.cell.label
-    },
-    // 右侧的内容
-    value: {
-      type: [String, Number],
-      default: uni.$u.props.cell.value
-    },
-    // 左侧图标名称，或者图片链接(本地文件建议使用绝对地址)
-    icon: {
-      type: String,
-      default: uni.$u.props.cell.icon
-    },
-    // 是否禁用cell
-    disabled: {
-      type: Boolean,
-      default: uni.$u.props.cell.disabled
-    },
-    // 是否显示下边框
-    border: {
-      type: Boolean,
-      default: uni.$u.props.cell.border
-    },
-    // 内容是否垂直居中(主要是针对右侧的value部分)
-    center: {
-      type: Boolean,
-      default: uni.$u.props.cell.center
-    },
-    // 点击后跳转的URL地址
-    url: {
-      type: String,
-      default: uni.$u.props.cell.url
-    },
-    // 链接跳转的方式，内部使用的是uView封装的route方法，可能会进行拦截操作
-    linkType: {
-      type: String,
-      default: uni.$u.props.cell.linkType
-    },
-    // 是否开启点击反馈(表现为点击时加上灰色背景)
-    clickable: {
-      type: Boolean,
-      default: uni.$u.props.cell.clickable
-    },
-    // 是否展示右侧箭头并开启点击反馈
-    isLink: {
-      type: Boolean,
-      default: uni.$u.props.cell.isLink
-    },
-    // 是否显示表单状态下的必填星号(此组件可能会内嵌入input组件)
-    required: {
-      type: Boolean,
-      default: uni.$u.props.cell.required
-    },
-    // 右侧的图标箭头
-    rightIcon: {
-      type: String,
-      default: uni.$u.props.cell.rightIcon
-    },
-    // 右侧箭头的方向，可选值为：left，up，down
-    arrowDirection: {
-      type: String,
-      default: uni.$u.props.cell.arrowDirection
-    },
-    // 左侧图标样式
-    iconStyle: {
-      type: [Object, String],
-      default: function _default() {
-        return uni.$u.props.cell.iconStyle;
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ 11));
+var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { (0, _defineProperty2.default)(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
+function _extends() {
+  _extends = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
       }
-    },
-    // 右侧箭头图标的样式
-    rightIconStyle: {
-      type: [Object, String],
-      default: function _default() {
-        return uni.$u.props.cell.rightIconStyle;
+    }
+    return target;
+  };
+  return _extends.apply(this, arguments);
+}
+
+/* eslint no-console:0 */
+var formatRegExp = /%[sdj%]/g;
+var warning = function warning() {}; // don't print warning message when in production env or node runtime
+
+if (typeof process !== 'undefined' && Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}) && "development" !== 'production' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+  warning = function warning(type, errors) {
+    if (typeof console !== 'undefined' && console.warn) {
+      if (errors.every(function (e) {
+        return typeof e === 'string';
+      })) {
+        console.warn(type, errors);
       }
-    },
-    // 标题的样式
-    titleStyle: {
-      type: [Object, String],
-      default: function _default() {
-        return uni.$u.props.cell.titleStyle;
+    }
+  };
+}
+function convertFieldsError(errors) {
+  if (!errors || !errors.length) return null;
+  var fields = {};
+  errors.forEach(function (error) {
+    var field = error.field;
+    fields[field] = fields[field] || [];
+    fields[field].push(error);
+  });
+  return fields;
+}
+function format() {
+  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments[_key];
+  }
+  var i = 1;
+  var f = args[0];
+  var len = args.length;
+  if (typeof f === 'function') {
+    return f.apply(null, args.slice(1));
+  }
+  if (typeof f === 'string') {
+    var str = String(f).replace(formatRegExp, function (x) {
+      if (x === '%%') {
+        return '%';
       }
-    },
-    // 单位元的大小，可选值为large
-    size: {
-      type: String,
-      default: uni.$u.props.cell.size
-    },
-    // 点击cell是否阻止事件传播
-    stop: {
-      type: Boolean,
-      default: uni.$u.props.cell.stop
-    },
-    // 标识符，cell被点击时返回
-    name: {
-      type: [Number, String],
-      default: uni.$u.props.cell.name
+      if (i >= len) {
+        return x;
+      }
+      switch (x) {
+        case '%s':
+          return String(args[i++]);
+        case '%d':
+          return Number(args[i++]);
+        case '%j':
+          try {
+            return JSON.stringify(args[i++]);
+          } catch (_) {
+            return '[Circular]';
+          }
+          break;
+        default:
+          return x;
+      }
+    });
+    for (var arg = args[i]; i < len; arg = args[++i]) {
+      str += " ".concat(arg);
+    }
+    return str;
+  }
+  return f;
+}
+function isNativeStringType(type) {
+  return type === 'string' || type === 'url' || type === 'hex' || type === 'email' || type === 'pattern';
+}
+function isEmptyValue(value, type) {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (type === 'array' && Array.isArray(value) && !value.length) {
+    return true;
+  }
+  if (isNativeStringType(type) && typeof value === 'string' && !value) {
+    return true;
+  }
+  return false;
+}
+function asyncParallelArray(arr, func, callback) {
+  var results = [];
+  var total = 0;
+  var arrLength = arr.length;
+  function count(errors) {
+    results.push.apply(results, errors);
+    total++;
+    if (total === arrLength) {
+      callback(results);
     }
   }
+  arr.forEach(function (a) {
+    func(a, count);
+  });
+}
+function asyncSerialArray(arr, func, callback) {
+  var index = 0;
+  var arrLength = arr.length;
+  function next(errors) {
+    if (errors && errors.length) {
+      callback(errors);
+      return;
+    }
+    var original = index;
+    index += 1;
+    if (original < arrLength) {
+      func(arr[original], next);
+    } else {
+      callback([]);
+    }
+  }
+  next([]);
+}
+function flattenObjArr(objArr) {
+  var ret = [];
+  Object.keys(objArr).forEach(function (k) {
+    ret.push.apply(ret, objArr[k]);
+  });
+  return ret;
+}
+function asyncMap(objArr, option, func, callback) {
+  if (option.first) {
+    var _pending = new Promise(function (resolve, reject) {
+      var next = function next(errors) {
+        callback(errors);
+        return errors.length ? reject({
+          errors: errors,
+          fields: convertFieldsError(errors)
+        }) : resolve();
+      };
+      var flattenArr = flattenObjArr(objArr);
+      asyncSerialArray(flattenArr, func, next);
+    });
+    _pending.catch(function (e) {
+      return e;
+    });
+    return _pending;
+  }
+  var firstFields = option.firstFields || [];
+  if (firstFields === true) {
+    firstFields = Object.keys(objArr);
+  }
+  var objArrKeys = Object.keys(objArr);
+  var objArrLength = objArrKeys.length;
+  var total = 0;
+  var results = [];
+  var pending = new Promise(function (resolve, reject) {
+    var next = function next(errors) {
+      results.push.apply(results, errors);
+      total++;
+      if (total === objArrLength) {
+        callback(results);
+        return results.length ? reject({
+          errors: results,
+          fields: convertFieldsError(results)
+        }) : resolve();
+      }
+    };
+    if (!objArrKeys.length) {
+      callback(results);
+      resolve();
+    }
+    objArrKeys.forEach(function (key) {
+      var arr = objArr[key];
+      if (firstFields.indexOf(key) !== -1) {
+        asyncSerialArray(arr, func, next);
+      } else {
+        asyncParallelArray(arr, func, next);
+      }
+    });
+  });
+  pending.catch(function (e) {
+    return e;
+  });
+  return pending;
+}
+function complementError(rule) {
+  return function (oe) {
+    if (oe && oe.message) {
+      oe.field = oe.field || rule.fullField;
+      return oe;
+    }
+    return {
+      message: typeof oe === 'function' ? oe() : oe,
+      field: oe.field || rule.fullField
+    };
+  };
+}
+function deepMerge(target, source) {
+  if (source) {
+    for (var s in source) {
+      if (source.hasOwnProperty(s)) {
+        var value = source[s];
+        if ((0, _typeof2.default)(value) === 'object' && (0, _typeof2.default)(target[s]) === 'object') {
+          target[s] = _objectSpread(_objectSpread({}, target[s]), value);
+        } else {
+          target[s] = value;
+        }
+      }
+    }
+  }
+  return target;
+}
+
+/**
+ *  Rule for validating required fields.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function required(rule, value, source, errors, options, type) {
+  if (rule.required && (!source.hasOwnProperty(rule.field) || isEmptyValue(value, type || rule.type))) {
+    errors.push(format(options.messages.required, rule.fullField));
+  }
+}
+
+/**
+ *  Rule for validating whitespace.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function whitespace(rule, value, source, errors, options) {
+  if (/^\s+$/.test(value) || value === '') {
+    errors.push(format(options.messages.whitespace, rule.fullField));
+  }
+}
+
+/* eslint max-len:0 */
+
+var pattern = {
+  // http://emailregex.com/
+  email: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+  url: new RegExp("^(?!mailto:)(?:(?:http|https|ftp)://|//)(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-*)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-*)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$", 'i'),
+  hex: /^#?([a-f0-9]{6}|[a-f0-9]{3})$/i
 };
-exports.default = _default2;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+var types = {
+  integer: function integer(value) {
+    return /^(-)?\d+$/.test(value);
+  },
+  float: function float(value) {
+    return /^(-)?\d+(\.\d+)?$/.test(value);
+  },
+  array: function array(value) {
+    return Array.isArray(value);
+  },
+  regexp: function regexp(value) {
+    if (value instanceof RegExp) {
+      return true;
+    }
+    try {
+      return !!new RegExp(value);
+    } catch (e) {
+      return false;
+    }
+  },
+  date: function date(value) {
+    return typeof value.getTime === 'function' && typeof value.getMonth === 'function' && typeof value.getYear === 'function';
+  },
+  number: function number(value) {
+    if (isNaN(value)) {
+      return false;
+    }
+
+    // 修改源码，将字符串数值先转为数值
+    return typeof +value === 'number';
+  },
+  object: function object(value) {
+    return (0, _typeof2.default)(value) === 'object' && !types.array(value);
+  },
+  method: function method(value) {
+    return typeof value === 'function';
+  },
+  email: function email(value) {
+    return typeof value === 'string' && !!value.match(pattern.email) && value.length < 255;
+  },
+  url: function url(value) {
+    return typeof value === 'string' && !!value.match(pattern.url);
+  },
+  hex: function hex(value) {
+    return typeof value === 'string' && !!value.match(pattern.hex);
+  }
+};
+/**
+ *  Rule for validating the type of a value.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function type(rule, value, source, errors, options) {
+  if (rule.required && value === undefined) {
+    required(rule, value, source, errors, options);
+    return;
+  }
+  var custom = ['integer', 'float', 'array', 'regexp', 'object', 'method', 'email', 'number', 'date', 'url', 'hex'];
+  var ruleType = rule.type;
+  if (custom.indexOf(ruleType) > -1) {
+    if (!types[ruleType](value)) {
+      errors.push(format(options.messages.types[ruleType], rule.fullField, rule.type));
+    } // straight typeof check
+  } else if (ruleType && (0, _typeof2.default)(value) !== rule.type) {
+    errors.push(format(options.messages.types[ruleType], rule.fullField, rule.type));
+  }
+}
+
+/**
+ *  Rule for validating minimum and maximum allowed values.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function range(rule, value, source, errors, options) {
+  var len = typeof rule.len === 'number';
+  var min = typeof rule.min === 'number';
+  var max = typeof rule.max === 'number'; // 正则匹配码点范围从U+010000一直到U+10FFFF的文字（补充平面Supplementary Plane）
+
+  var spRegexp = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+  var val = value;
+  var key = null;
+  var num = typeof value === 'number';
+  var str = typeof value === 'string';
+  var arr = Array.isArray(value);
+  if (num) {
+    key = 'number';
+  } else if (str) {
+    key = 'string';
+  } else if (arr) {
+    key = 'array';
+  } // if the value is not of a supported type for range validation
+  // the validation rule rule should use the
+  // type property to also test for a particular type
+
+  if (!key) {
+    return false;
+  }
+  if (arr) {
+    val = value.length;
+  }
+  if (str) {
+    // 处理码点大于U+010000的文字length属性不准确的bug，如"𠮷𠮷𠮷".lenght !== 3
+    val = value.replace(spRegexp, '_').length;
+  }
+  if (len) {
+    if (val !== rule.len) {
+      errors.push(format(options.messages[key].len, rule.fullField, rule.len));
+    }
+  } else if (min && !max && val < rule.min) {
+    errors.push(format(options.messages[key].min, rule.fullField, rule.min));
+  } else if (max && !min && val > rule.max) {
+    errors.push(format(options.messages[key].max, rule.fullField, rule.max));
+  } else if (min && max && (val < rule.min || val > rule.max)) {
+    errors.push(format(options.messages[key].range, rule.fullField, rule.min, rule.max));
+  }
+}
+var ENUM = 'enum';
+/**
+ *  Rule for validating a value exists in an enumerable list.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function enumerable(rule, value, source, errors, options) {
+  rule[ENUM] = Array.isArray(rule[ENUM]) ? rule[ENUM] : [];
+  if (rule[ENUM].indexOf(value) === -1) {
+    errors.push(format(options.messages[ENUM], rule.fullField, rule[ENUM].join(', ')));
+  }
+}
+
+/**
+ *  Rule for validating a regular expression pattern.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param source The source object being validated.
+ *  @param errors An array of errors that this rule may add
+ *  validation errors to.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function pattern$1(rule, value, source, errors, options) {
+  if (rule.pattern) {
+    if (rule.pattern instanceof RegExp) {
+      // if a RegExp instance is passed, reset `lastIndex` in case its `global`
+      // flag is accidentally set to `true`, which in a validation scenario
+      // is not necessary and the result might be misleading
+      rule.pattern.lastIndex = 0;
+      if (!rule.pattern.test(value)) {
+        errors.push(format(options.messages.pattern.mismatch, rule.fullField, value, rule.pattern));
+      }
+    } else if (typeof rule.pattern === 'string') {
+      var _pattern = new RegExp(rule.pattern);
+      if (!_pattern.test(value)) {
+        errors.push(format(options.messages.pattern.mismatch, rule.fullField, value, rule.pattern));
+      }
+    }
+  }
+}
+var rules = {
+  required: required,
+  whitespace: whitespace,
+  type: type,
+  range: range,
+  enum: enumerable,
+  pattern: pattern$1
+};
+
+/**
+ *  Performs validation for string types.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function string(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value, 'string') && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options, 'string');
+    if (!isEmptyValue(value, 'string')) {
+      rules.type(rule, value, source, errors, options);
+      rules.range(rule, value, source, errors, options);
+      rules.pattern(rule, value, source, errors, options);
+      if (rule.whitespace === true) {
+        rules.whitespace(rule, value, source, errors, options);
+      }
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a function.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function method(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a number.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function number(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (value === '') {
+      value = undefined;
+    }
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+      rules.range(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a boolean.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function _boolean(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates the regular expression type.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function regexp(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (!isEmptyValue(value)) {
+      rules.type(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a number is an integer.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function integer(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+      rules.range(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a number is a floating point number.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function floatFn(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+      rules.range(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates an array.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function array(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value, 'array') && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options, 'array');
+    if (!isEmptyValue(value, 'array')) {
+      rules.type(rule, value, source, errors, options);
+      rules.range(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates an object.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function object(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules.type(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+var ENUM$1 = 'enum';
+/**
+ *  Validates an enumerable list.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function enumerable$1(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (value !== undefined) {
+      rules[ENUM$1](rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Validates a regular expression pattern.
+ *
+ *  Performs validation when a rule only contains
+ *  a pattern property but is not declared as a string type.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function pattern$2(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value, 'string') && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (!isEmptyValue(value, 'string')) {
+      rules.pattern(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+function date(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+    if (!isEmptyValue(value)) {
+      var dateObject;
+      if (typeof value === 'number') {
+        dateObject = new Date(value);
+      } else {
+        dateObject = value;
+      }
+      rules.type(rule, dateObject, source, errors, options);
+      if (dateObject) {
+        rules.range(rule, dateObject.getTime(), source, errors, options);
+      }
+    }
+  }
+  callback(errors);
+}
+function required$1(rule, value, callback, source, options) {
+  var errors = [];
+  var type = Array.isArray(value) ? 'array' : (0, _typeof2.default)(value);
+  rules.required(rule, value, source, errors, options, type);
+  callback(errors);
+}
+function type$1(rule, value, callback, source, options) {
+  var ruleType = rule.type;
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value, ruleType) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options, ruleType);
+    if (!isEmptyValue(value, ruleType)) {
+      rules.type(rule, value, source, errors, options);
+    }
+  }
+  callback(errors);
+}
+
+/**
+ *  Performs validation for any type.
+ *
+ *  @param rule The validation rule.
+ *  @param value The value of the field on the source object.
+ *  @param callback The callback function.
+ *  @param source The source object being validated.
+ *  @param options The validation options.
+ *  @param options.messages The validation messages.
+ */
+
+function any(rule, value, callback, source, options) {
+  var errors = [];
+  var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+  if (validate) {
+    if (isEmptyValue(value) && !rule.required) {
+      return callback();
+    }
+    rules.required(rule, value, source, errors, options);
+  }
+  callback(errors);
+}
+var validators = {
+  string: string,
+  method: method,
+  number: number,
+  boolean: _boolean,
+  regexp: regexp,
+  integer: integer,
+  float: floatFn,
+  array: array,
+  object: object,
+  enum: enumerable$1,
+  pattern: pattern$2,
+  date: date,
+  url: type$1,
+  hex: type$1,
+  email: type$1,
+  required: required$1,
+  any: any
+};
+function newMessages() {
+  return {
+    default: 'Validation error on field %s',
+    required: '%s is required',
+    enum: '%s must be one of %s',
+    whitespace: '%s cannot be empty',
+    date: {
+      format: '%s date %s is invalid for format %s',
+      parse: '%s date could not be parsed, %s is invalid ',
+      invalid: '%s date %s is invalid'
+    },
+    types: {
+      string: '%s is not a %s',
+      method: '%s is not a %s (function)',
+      array: '%s is not an %s',
+      object: '%s is not an %s',
+      number: '%s is not a %s',
+      date: '%s is not a %s',
+      boolean: '%s is not a %s',
+      integer: '%s is not an %s',
+      float: '%s is not a %s',
+      regexp: '%s is not a valid %s',
+      email: '%s is not a valid %s',
+      url: '%s is not a valid %s',
+      hex: '%s is not a valid %s'
+    },
+    string: {
+      len: '%s must be exactly %s characters',
+      min: '%s must be at least %s characters',
+      max: '%s cannot be longer than %s characters',
+      range: '%s must be between %s and %s characters'
+    },
+    number: {
+      len: '%s must equal %s',
+      min: '%s cannot be less than %s',
+      max: '%s cannot be greater than %s',
+      range: '%s must be between %s and %s'
+    },
+    array: {
+      len: '%s must be exactly %s in length',
+      min: '%s cannot be less than %s in length',
+      max: '%s cannot be greater than %s in length',
+      range: '%s must be between %s and %s in length'
+    },
+    pattern: {
+      mismatch: '%s value %s does not match pattern %s'
+    },
+    clone: function clone() {
+      var cloned = JSON.parse(JSON.stringify(this));
+      cloned.clone = this.clone;
+      return cloned;
+    }
+  };
+}
+var messages = newMessages();
+
+/**
+ *  Encapsulates a validation schema.
+ *
+ *  @param descriptor An object declaring validation rules
+ *  for this schema.
+ */
+
+function Schema(descriptor) {
+  this.rules = null;
+  this._messages = messages;
+  this.define(descriptor);
+}
+Schema.prototype = {
+  messages: function messages(_messages) {
+    if (_messages) {
+      this._messages = deepMerge(newMessages(), _messages);
+    }
+    return this._messages;
+  },
+  define: function define(rules) {
+    if (!rules) {
+      throw new Error('Cannot configure a schema with no rules');
+    }
+    if ((0, _typeof2.default)(rules) !== 'object' || Array.isArray(rules)) {
+      throw new Error('Rules must be an object');
+    }
+    this.rules = {};
+    var z;
+    var item;
+    for (z in rules) {
+      if (rules.hasOwnProperty(z)) {
+        item = rules[z];
+        this.rules[z] = Array.isArray(item) ? item : [item];
+      }
+    }
+  },
+  validate: function validate(source_, o, oc) {
+    var _this = this;
+    if (o === void 0) {
+      o = {};
+    }
+    if (oc === void 0) {
+      oc = function oc() {};
+    }
+    var source = source_;
+    var options = o;
+    var callback = oc;
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    if (!this.rules || Object.keys(this.rules).length === 0) {
+      if (callback) {
+        callback();
+      }
+      return Promise.resolve();
+    }
+    function complete(results) {
+      var i;
+      var errors = [];
+      var fields = {};
+      function add(e) {
+        if (Array.isArray(e)) {
+          var _errors;
+          errors = (_errors = errors).concat.apply(_errors, e);
+        } else {
+          errors.push(e);
+        }
+      }
+      for (i = 0; i < results.length; i++) {
+        add(results[i]);
+      }
+      if (!errors.length) {
+        errors = null;
+        fields = null;
+      } else {
+        fields = convertFieldsError(errors);
+      }
+      callback(errors, fields);
+    }
+    if (options.messages) {
+      var messages$1 = this.messages();
+      if (messages$1 === messages) {
+        messages$1 = newMessages();
+      }
+      deepMerge(messages$1, options.messages);
+      options.messages = messages$1;
+    } else {
+      options.messages = this.messages();
+    }
+    var arr;
+    var value;
+    var series = {};
+    var keys = options.keys || Object.keys(this.rules);
+    keys.forEach(function (z) {
+      arr = _this.rules[z];
+      value = source[z];
+      arr.forEach(function (r) {
+        var rule = r;
+        if (typeof rule.transform === 'function') {
+          if (source === source_) {
+            source = _objectSpread({}, source);
+          }
+          value = source[z] = rule.transform(value);
+        }
+        if (typeof rule === 'function') {
+          rule = {
+            validator: rule
+          };
+        } else {
+          rule = _objectSpread({}, rule);
+        }
+        rule.validator = _this.getValidationMethod(rule);
+        rule.field = z;
+        rule.fullField = rule.fullField || z;
+        rule.type = _this.getType(rule);
+        if (!rule.validator) {
+          return;
+        }
+        series[z] = series[z] || [];
+        series[z].push({
+          rule: rule,
+          value: value,
+          source: source,
+          field: z
+        });
+      });
+    });
+    var errorFields = {};
+    return asyncMap(series, options, function (data, doIt) {
+      var rule = data.rule;
+      var deep = (rule.type === 'object' || rule.type === 'array') && ((0, _typeof2.default)(rule.fields) === 'object' || (0, _typeof2.default)(rule.defaultField) === 'object');
+      deep = deep && (rule.required || !rule.required && data.value);
+      rule.field = data.field;
+      function addFullfield(key, schema) {
+        return _objectSpread(_objectSpread({}, schema), {}, {
+          fullField: "".concat(rule.fullField, ".").concat(key)
+        });
+      }
+      function cb(e) {
+        if (e === void 0) {
+          e = [];
+        }
+        var errors = e;
+        if (!Array.isArray(errors)) {
+          errors = [errors];
+        }
+        if (!options.suppressWarning && errors.length) {
+          Schema.warning('async-validator:', errors);
+        }
+        if (errors.length && rule.message) {
+          errors = [].concat(rule.message);
+        }
+        errors = errors.map(complementError(rule));
+        if (options.first && errors.length) {
+          errorFields[rule.field] = 1;
+          return doIt(errors);
+        }
+        if (!deep) {
+          doIt(errors);
+        } else {
+          // if rule is required but the target object
+          // does not exist fail at the rule level and don't
+          // go deeper
+          if (rule.required && !data.value) {
+            if (rule.message) {
+              errors = [].concat(rule.message).map(complementError(rule));
+            } else if (options.error) {
+              errors = [options.error(rule, format(options.messages.required, rule.field))];
+            } else {
+              errors = [];
+            }
+            return doIt(errors);
+          }
+          var fieldsSchema = {};
+          if (rule.defaultField) {
+            for (var k in data.value) {
+              if (data.value.hasOwnProperty(k)) {
+                fieldsSchema[k] = rule.defaultField;
+              }
+            }
+          }
+          fieldsSchema = _objectSpread(_objectSpread({}, fieldsSchema), data.rule.fields);
+          for (var f in fieldsSchema) {
+            if (fieldsSchema.hasOwnProperty(f)) {
+              var fieldSchema = Array.isArray(fieldsSchema[f]) ? fieldsSchema[f] : [fieldsSchema[f]];
+              fieldsSchema[f] = fieldSchema.map(addFullfield.bind(null, f));
+            }
+          }
+          var schema = new Schema(fieldsSchema);
+          schema.messages(options.messages);
+          if (data.rule.options) {
+            data.rule.options.messages = options.messages;
+            data.rule.options.error = options.error;
+          }
+          schema.validate(data.value, data.rule.options || options, function (errs) {
+            var finalErrors = [];
+            if (errors && errors.length) {
+              finalErrors.push.apply(finalErrors, errors);
+            }
+            if (errs && errs.length) {
+              finalErrors.push.apply(finalErrors, errs);
+            }
+            doIt(finalErrors.length ? finalErrors : null);
+          });
+        }
+      }
+      var res;
+      if (rule.asyncValidator) {
+        res = rule.asyncValidator(rule, data.value, cb, data.source, options);
+      } else if (rule.validator) {
+        res = rule.validator(rule, data.value, cb, data.source, options);
+        if (res === true) {
+          cb();
+        } else if (res === false) {
+          cb(rule.message || "".concat(rule.field, " fails"));
+        } else if (res instanceof Array) {
+          cb(res);
+        } else if (res instanceof Error) {
+          cb(res.message);
+        }
+      }
+      if (res && res.then) {
+        res.then(function () {
+          return cb();
+        }, function (e) {
+          return cb(e);
+        });
+      }
+    }, function (results) {
+      complete(results);
+    });
+  },
+  getType: function getType(rule) {
+    if (rule.type === undefined && rule.pattern instanceof RegExp) {
+      rule.type = 'pattern';
+    }
+    if (typeof rule.validator !== 'function' && rule.type && !validators.hasOwnProperty(rule.type)) {
+      throw new Error(format('Unknown rule type %s', rule.type));
+    }
+    return rule.type || 'string';
+  },
+  getValidationMethod: function getValidationMethod(rule) {
+    if (typeof rule.validator === 'function') {
+      return rule.validator;
+    }
+    var keys = Object.keys(rule);
+    var messageIndex = keys.indexOf('message');
+    if (messageIndex !== -1) {
+      keys.splice(messageIndex, 1);
+    }
+    if (keys.length === 1 && keys[0] === 'required') {
+      return validators.required;
+    }
+    return validators[this.getType(rule)] || false;
+  }
+};
+Schema.register = function register(type, validator) {
+  if (typeof validator !== 'function') {
+    throw new Error('Cannot register a validator by type, validator is not a function');
+  }
+  validators[type] = validator;
+};
+Schema.warning = warning;
+Schema.messages = messages;
+var _default = Schema; // # sourceMappingURL=index.js.map
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../搜狗高速下载/HBuilderX.3.2.9.20210927/HBuilderX/plugins/uniapp-cli/node_modules/node-libs-browser/mock/process.js */ 291)))
 
 /***/ }),
-/* 248 */,
-/* 249 */,
-/* 250 */,
-/* 251 */,
-/* 252 */,
-/* 253 */,
-/* 254 */,
-/* 255 */
-/*!******************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-line/props.js ***!
-  \******************************************************************************/
+/* 291 */
+/*!********************************************************!*\
+  !*** ./node_modules/node-libs-browser/mock/process.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports.nextTick = function nextTick(fn) {
+    var args = Array.prototype.slice.call(arguments);
+    args.shift();
+    setTimeout(function () {
+        fn.apply(null, args);
+    }, 0);
+};
+
+exports.platform = exports.arch = 
+exports.execPath = exports.title = 'browser';
+exports.pid = 1;
+exports.browser = true;
+exports.env = {};
+exports.argv = [];
+
+exports.binding = function (name) {
+	throw new Error('No such module. (Possibly not yet loaded)')
+};
+
+(function () {
+    var cwd = '/';
+    var path;
+    exports.cwd = function () { return cwd };
+    exports.chdir = function (dir) {
+        if (!path) path = __webpack_require__(/*! path */ 292);
+        cwd = path.resolve(dir, cwd);
+    };
+})();
+
+exports.exit = exports.kill = 
+exports.umask = exports.dlopen = 
+exports.uptime = exports.memoryUsage = 
+exports.uvCounters = function() {};
+exports.features = {};
+
+
+/***/ }),
+/* 292 */
+/*!***********************************************!*\
+  !*** ./node_modules/path-browserify/index.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(process) {// .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
+// backported and transplited with Babel, with backwards-compat fixes
+
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function (path) {
+  if (typeof path !== 'string') path = path + '';
+  if (path.length === 0) return '.';
+  var code = path.charCodeAt(0);
+  var hasRoot = code === 47 /*/*/;
+  var end = -1;
+  var matchedSlash = true;
+  for (var i = path.length - 1; i >= 1; --i) {
+    code = path.charCodeAt(i);
+    if (code === 47 /*/*/) {
+        if (!matchedSlash) {
+          end = i;
+          break;
+        }
+      } else {
+      // We saw the first non-path separator
+      matchedSlash = false;
+    }
+  }
+
+  if (end === -1) return hasRoot ? '/' : '.';
+  if (hasRoot && end === 1) {
+    // return '//';
+    // Backwards-compat fix:
+    return '/';
+  }
+  return path.slice(0, end);
+};
+
+function basename(path) {
+  if (typeof path !== 'string') path = path + '';
+
+  var start = 0;
+  var end = -1;
+  var matchedSlash = true;
+  var i;
+
+  for (i = path.length - 1; i >= 0; --i) {
+    if (path.charCodeAt(i) === 47 /*/*/) {
+        // If we reached a path separator that was not part of a set of path
+        // separators at the end of the string, stop now
+        if (!matchedSlash) {
+          start = i + 1;
+          break;
+        }
+      } else if (end === -1) {
+      // We saw the first non-path separator, mark this as the end of our
+      // path component
+      matchedSlash = false;
+      end = i + 1;
+    }
+  }
+
+  if (end === -1) return '';
+  return path.slice(start, end);
+}
+
+// Uses a mixed approach for backwards-compatibility, as ext behavior changed
+// in new Node.js versions, so only basename() above is backported here
+exports.basename = function (path, ext) {
+  var f = basename(path);
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+exports.extname = function (path) {
+  if (typeof path !== 'string') path = path + '';
+  var startDot = -1;
+  var startPart = 0;
+  var end = -1;
+  var matchedSlash = true;
+  // Track the state of characters (if any) we see before our first dot and
+  // after any path separator we find
+  var preDotState = 0;
+  for (var i = path.length - 1; i >= 0; --i) {
+    var code = path.charCodeAt(i);
+    if (code === 47 /*/*/) {
+        // If we reached a path separator that was not part of a set of path
+        // separators at the end of the string, stop now
+        if (!matchedSlash) {
+          startPart = i + 1;
+          break;
+        }
+        continue;
+      }
+    if (end === -1) {
+      // We saw the first non-path separator, mark this as the end of our
+      // extension
+      matchedSlash = false;
+      end = i + 1;
+    }
+    if (code === 46 /*.*/) {
+        // If this is our first dot, mark it as the start of our extension
+        if (startDot === -1)
+          startDot = i;
+        else if (preDotState !== 1)
+          preDotState = 1;
+    } else if (startDot !== -1) {
+      // We saw a non-dot and non-path separator before our dot, so we should
+      // have a good chance at having a non-empty extension
+      preDotState = -1;
+    }
+  }
+
+  if (startDot === -1 || end === -1 ||
+      // We saw a non-dot character immediately before the dot
+      preDotState === 0 ||
+      // The (right-most) trimmed path component is exactly '..'
+      preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
+    return '';
+  }
+  return path.slice(startDot, end);
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../node-libs-browser/mock/process.js */ 291)))
+
+/***/ }),
+/* 293 */,
+/* 294 */,
+/* 295 */,
+/* 296 */,
+/* 297 */,
+/* 298 */
+/*!**********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-line/props.js ***!
+  \**********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20878,17 +22928,24 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 256 */,
-/* 257 */,
-/* 258 */,
-/* 259 */,
-/* 260 */,
-/* 261 */,
-/* 262 */,
-/* 263 */
-/*!************************************************************************************!*\
-  !*** E:/STUDY/my/beiTangShi/uni_modules/uview-ui/components/u-cell-group/props.js ***!
-  \************************************************************************************/
+/* 299 */,
+/* 300 */,
+/* 301 */,
+/* 302 */,
+/* 303 */,
+/* 304 */,
+/* 305 */,
+/* 306 */,
+/* 307 */,
+/* 308 */,
+/* 309 */,
+/* 310 */,
+/* 311 */,
+/* 312 */,
+/* 313 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-popup/props.js ***!
+  \***********************************************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -20901,15 +22958,443 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _default = {
   props: {
-    // 分组标题
-    title: {
-      type: String,
-      default: uni.$u.props.cellGroup.title
-    },
-    // 是否显示外边框
-    border: {
+    // 是否展示弹窗
+    show: {
       type: Boolean,
-      default: uni.$u.props.cellGroup.border
+      default: uni.$u.props.popup.show
+    },
+    // 是否显示遮罩
+    overlay: {
+      type: Boolean,
+      default: uni.$u.props.popup.overlay
+    },
+    // 弹出的方向，可选值为 top bottom right left center
+    mode: {
+      type: String,
+      default: uni.$u.props.popup.mode
+    },
+    // 动画时长，单位ms
+    duration: {
+      type: [String, Number],
+      default: uni.$u.props.popup.duration
+    },
+    // 是否显示关闭图标
+    closeable: {
+      type: Boolean,
+      default: uni.$u.props.popup.closeable
+    },
+    // 自定义遮罩的样式
+    overlayStyle: {
+      type: [Object, String],
+      default: uni.$u.props.popup.overlayStyle
+    },
+    // 点击遮罩是否关闭弹窗
+    closeOnClickOverlay: {
+      type: Boolean,
+      default: uni.$u.props.popup.closeOnClickOverlay
+    },
+    // 层级
+    zIndex: {
+      type: [String, Number],
+      default: uni.$u.props.popup.zIndex
+    },
+    // 是否为iPhoneX留出底部安全距离
+    safeAreaInsetBottom: {
+      type: Boolean,
+      default: uni.$u.props.popup.safeAreaInsetBottom
+    },
+    // 是否留出顶部安全距离（状态栏高度）
+    safeAreaInsetTop: {
+      type: Boolean,
+      default: uni.$u.props.popup.safeAreaInsetTop
+    },
+    // 自定义关闭图标位置，top-left为左上角，top-right为右上角，bottom-left为左下角，bottom-right为右下角
+    closeIconPos: {
+      type: String,
+      default: uni.$u.props.popup.closeIconPos
+    },
+    // 是否显示圆角
+    round: {
+      type: [Boolean, String, Number],
+      default: uni.$u.props.popup.round
+    },
+    // mode=center，也即中部弹出时，是否使用缩放模式
+    zoom: {
+      type: Boolean,
+      default: uni.$u.props.popup.zoom
+    },
+    // 弹窗背景色，设置为transparent可去除白色背景
+    bgColor: {
+      type: String,
+      default: uni.$u.props.popup.bgColor
+    },
+    // 遮罩的透明度，0-1之间
+    overlayOpacity: {
+      type: [Number, String],
+      default: uni.$u.props.popup.overlayOpacity
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 314 */,
+/* 315 */,
+/* 316 */,
+/* 317 */,
+/* 318 */,
+/* 319 */,
+/* 320 */,
+/* 321 */
+/*!*************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-overlay/props.js ***!
+  \*************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 是否显示遮罩
+    show: {
+      type: Boolean,
+      default: uni.$u.props.overlay.show
+    },
+    // 层级z-index
+    zIndex: {
+      type: [String, Number],
+      default: uni.$u.props.overlay.zIndex
+    },
+    // 遮罩的过渡时间，单位为ms
+    duration: {
+      type: [String, Number],
+      default: uni.$u.props.overlay.duration
+    },
+    // 不透明度值，当做rgba的第四个参数
+    opacity: {
+      type: [String, Number],
+      default: uni.$u.props.overlay.opacity
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 322 */,
+/* 323 */,
+/* 324 */,
+/* 325 */,
+/* 326 */,
+/* 327 */,
+/* 328 */,
+/* 329 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-status-bar/props.js ***!
+  \****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    bgColor: {
+      type: String,
+      default: uni.$u.props.statusBar.bgColor
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 330 */,
+/* 331 */,
+/* 332 */,
+/* 333 */,
+/* 334 */,
+/* 335 */,
+/* 336 */,
+/* 337 */
+/*!*****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-safe-bottom/props.js ***!
+  \*****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {}
+};
+exports.default = _default;
+
+/***/ }),
+/* 338 */,
+/* 339 */,
+/* 340 */,
+/* 341 */,
+/* 342 */,
+/* 343 */,
+/* 344 */,
+/* 345 */,
+/* 346 */,
+/* 347 */,
+/* 348 */,
+/* 349 */,
+/* 350 */,
+/* 351 */,
+/* 352 */,
+/* 353 */,
+/* 354 */,
+/* 355 */,
+/* 356 */,
+/* 357 */,
+/* 358 */,
+/* 359 */,
+/* 360 */,
+/* 361 */,
+/* 362 */,
+/* 363 */,
+/* 364 */,
+/* 365 */
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-textarea/props.js ***!
+  \**************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 输入框的内容
+    value: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.value
+    },
+    // 输入框为空时占位符
+    placeholder: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.placeholder
+    },
+    // 指定placeholder的样式类，注意页面或组件的style中写了scoped时，需要在类名前写/deep/
+    placeholderClass: {
+      type: String,
+      default: uni.$u.props.input.placeholderClass
+    },
+    // 指定placeholder的样式
+    placeholderStyle: {
+      type: [String, Object],
+      default: uni.$u.props.input.placeholderStyle
+    },
+    // 输入框高度
+    height: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.height
+    },
+    // 设置键盘右下角按钮的文字，仅微信小程序，App-vue和H5有效
+    confirmType: {
+      type: String,
+      default: uni.$u.props.textarea.confirmType
+    },
+    // 是否禁用
+    disabled: {
+      type: Boolean,
+      default: uni.$u.props.textarea.disabled
+    },
+    // 是否显示统计字数
+    count: {
+      type: Boolean,
+      default: uni.$u.props.textarea.count
+    },
+    // 是否自动获取焦点，nvue不支持，H5取决于浏览器的实现
+    focus: {
+      type: Boolean,
+      default: uni.$u.props.textarea.focus
+    },
+    // 是否自动增加高度
+    autoHeight: {
+      type: Boolean,
+      default: uni.$u.props.textarea.autoHeight
+    },
+    // 如果textarea是在一个position:fixed的区域，需要显示指定属性fixed为true
+    fixed: {
+      type: Boolean,
+      default: uni.$u.props.textarea.fixed
+    },
+    // 指定光标与键盘的距离
+    cursorSpacing: {
+      type: Number,
+      default: uni.$u.props.textarea.cursorSpacing
+    },
+    // 指定focus时的光标位置
+    cursor: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.cursor
+    },
+    // 是否显示键盘上方带有”完成“按钮那一栏，
+    showConfirmBar: {
+      type: Boolean,
+      default: uni.$u.props.textarea.showConfirmBar
+    },
+    // 光标起始位置，自动聚焦时有效，需与selection-end搭配使用
+    selectionStart: {
+      type: Number,
+      default: uni.$u.props.textarea.selectionStart
+    },
+    // 光标结束位置，自动聚焦时有效，需与selection-start搭配使用
+    selectionEnd: {
+      type: Number,
+      default: uni.$u.props.textarea.selectionEnd
+    },
+    // 键盘弹起时，是否自动上推页面
+    adjustPosition: {
+      type: Boolean,
+      default: uni.$u.props.textarea.adjustPosition
+    },
+    // 是否去掉 iOS 下的默认内边距，只微信小程序有效
+    disableDefaultPadding: {
+      type: Boolean,
+      default: uni.$u.props.textarea.disableDefaultPadding
+    },
+    // focus时，点击页面的时候不收起键盘，只微信小程序有效
+    holdKeyboard: {
+      type: Boolean,
+      default: uni.$u.props.textarea.holdKeyboard
+    },
+    // 最大输入长度，设置为 -1 的时候不限制最大长度
+    maxlength: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.maxlength
+    },
+    // 边框类型，surround-四周边框，bottom-底部边框
+    border: {
+      type: String,
+      default: uni.$u.props.textarea.border
+    },
+    // 用于处理或者过滤输入框内容的方法
+    formatter: {
+      type: [Function, null],
+      default: uni.$u.props.textarea.formatter
+    },
+    // 是否忽略组件内对文本合成系统事件的处理
+    ignoreCompositionEvent: {
+      type: Boolean,
+      default: true
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 366 */,
+/* 367 */,
+/* 368 */,
+/* 369 */,
+/* 370 */,
+/* 371 */,
+/* 372 */,
+/* 373 */,
+/* 374 */,
+/* 375 */,
+/* 376 */,
+/* 377 */,
+/* 378 */,
+/* 379 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-empty/props.js ***!
+  \***********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 内置图标名称，或图片路径，建议绝对路径
+    icon: {
+      type: String,
+      default: uni.$u.props.empty.icon
+    },
+    // 提示文字
+    text: {
+      type: String,
+      default: uni.$u.props.empty.text
+    },
+    // 文字颜色
+    textColor: {
+      type: String,
+      default: uni.$u.props.empty.textColor
+    },
+    // 文字大小
+    textSize: {
+      type: [String, Number],
+      default: uni.$u.props.empty.textSize
+    },
+    // 图标的颜色
+    iconColor: {
+      type: String,
+      default: uni.$u.props.empty.iconColor
+    },
+    // 图标的大小
+    iconSize: {
+      type: [String, Number],
+      default: uni.$u.props.empty.iconSize
+    },
+    // 选择预置的图标类型
+    mode: {
+      type: String,
+      default: uni.$u.props.empty.mode
+    },
+    //  图标宽度，单位px
+    width: {
+      type: [String, Number],
+      default: uni.$u.props.empty.width
+    },
+    // 图标高度，单位px
+    height: {
+      type: [String, Number],
+      default: uni.$u.props.empty.height
+    },
+    // 是否显示组件
+    show: {
+      type: Boolean,
+      default: uni.$u.props.empty.show
+    },
+    // 组件距离上一个元素之间的距离，默认px单位
+    marginTop: {
+      type: [String, Number],
+      default: uni.$u.props.empty.marginTop
     }
   }
 };

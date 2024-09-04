@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "添加唐诗",
+  "usingComponents": {
+    "u--form": "/uni_modules/uview-ui/components/u--form/u--form",
+    "u-form-item": "/uni_modules/uview-ui/components/u-form-item/u-form-item",
+    "u--input": "/uni_modules/uview-ui/components/u--input/u--input",
+    "u--textarea": "/uni_modules/uview-ui/components/u--textarea/u--textarea",
+    "u-button": "/uni_modules/uview-ui/components/u-button/u-button",
+    "u-cell-group": "/uni_modules/uview-ui/components/u-cell-group/u-cell-group",
+    "u-cell": "/uni_modules/uview-ui/components/u-cell/u-cell"
+  }
+}

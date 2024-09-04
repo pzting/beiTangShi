@@ -9,9 +9,16 @@
 		<view class="list">
 			<u-cell-group>
 				<u-cell title="胜率" :value="winRate+'%'"></u-cell>
-				<u-cell @click="clear" clickable title="数据" value="清空" :isLink="true"></u-cell>
+				<u-cell @click="showClear = true" clickable title="数据" value="清空" :isLink="true"></u-cell>
+				<u-cell url="/pages/poemList/index" clickable title="唐诗" value="查看" :isLink="true"></u-cell>
 			</u-cell-group>
 		</view>
+
+
+
+		<u-modal @cancel="showClear = false" @confirm="clear" showCancelButton :show="showClear" title="提示"
+			content="真的要清空所有数据吗?">
+		</u-modal>
 	</view>
 </template>
 
@@ -23,6 +30,7 @@
 		components: {},
 		data() {
 			return {
+				showClear: false,
 				winRate: '暂无',
 				Data,
 				key: 'value',
@@ -35,6 +43,7 @@
 		},
 		methods: {
 			clear() {
+				this.showClear = false
 				let dataResult = uni.getStorageSync('dataResult')
 				let all = 0,
 					write = 0,
@@ -84,11 +93,12 @@
 					this.winRate = parseInt(success / write * 100)
 				}
 				if (write == 0) {
-
 					rankingInd = 0
-				} else if (write < 20) {
+				} else if (success == 0) {
+					rankingInd = 0
+				} else if (success < 20) {
 					rankingInd = 1
-				} else if (write > 20) {
+				} else if (success > 20) {
 					if (this.winRate < ratio * 2) {
 						rankingInd = 1
 					} else if (this.winRate < ratio * 3) {
@@ -98,7 +108,6 @@
 					} else if (this.winRate < ratio * 5) {
 						rankingInd = 4
 					} else if (this.winRate < ratio * 6) {
-						console.log(this.winRate, '66666', ratio * 6);
 						if (this.winRate < 92) {
 							rankingInd = 5
 						} else if (this.winRate < 96) {
@@ -108,7 +117,6 @@
 						}
 					}
 				}
-				console.log(rankingInd);
 				this.rankingData = Data.nameType[rankingInd]
 			}
 		},
@@ -140,7 +148,7 @@
 			margin-top: 60rpx;
 			padding: 20rpx 40rpx;
 			border-radius: 10rpx;
-			background-color: #fff;
+			background-color: #effffd;
 			box-shadow: #555 0px 2px 6px 0px;
 			display: flex;
 			justify-content: space-between;

@@ -9,13 +9,12 @@
 		<view class="countDown">
 			<view class="btns">
 				<u-button v-if="type=='over'" text="重来" :plain="true" type="warning" @click="reset"></u-button>
-				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="success"
-					@click="start"></u-button>
+				<u-button v-if="type=='pause'" text="开始" :plain="true" size="normal" type="primary" @click="start"></u-button>
 				<u-button v-if="type=='start'" text="暂停" :plain="true" type="error" @click="pause"></u-button>
 			</view>
 			<view class="timeText">倒计时</view>
-			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond
-				@change="onChange" @finish="onFinish">
+			<u-count-down ref="countDown" :time="time" format="mm:ss:SSS" :autoStart="false" millisecond @change="onChange"
+				@finish="onFinish">
 				<view class="time">
 					<view class="time__custom seconds">
 						<text class="time__custom__item">{{ timeData.minutes }}</text>
@@ -36,13 +35,13 @@
 		<!-- 诗 -->
 		<view class="poemBox">
 			<view v-if="isTitle" class="title">{{ poem.title}}</view>
-			<view v-else @tap="isTitle=true" class="title">查看标题</view>
+			<view v-else @tap="isTitle=true" class="title">点击查看标题</view>
 			<view v-if="isAuthor" class="author">{{poem.author}}</view>
-			<view v-else @tap="isAuthor=true" class="author">查看作者</view>
+			<view v-else @tap="isAuthor=true" class="author">点击查看作者</view>
 			<view v-for="(item,row) in poemWordWrite" class="item">
 				<template v-for="(word,ind) in item">
 					<view v-if="word==','||word=='，'">{{word}}</view>
-					<text v-else @tap="focus=`${row}-${ind}`"
+					<text v-else @tap="recall(row,ind)"
 						:class="{focus:focus==`${row}-${ind}`,error:poemWordWriteCla[row][ind]}">{{word}}</text>
 				</template>。
 			</view>
@@ -80,18 +79,22 @@
 
 <script>
 	import {
-		Data
+		Data,
+		poemStr,
+		setPoemObj
 	} from "./data.js"
 	export default {
 		components: {},
 		data() {
 			return {
 				Data,
+				poemStr,
+				poemList: uni.getStorageSync('poemList') || [],
 				time: 2 * 60 * 1000,
 				// time: 2 * 1000,
 				type: 'pause',
-				isTitle: false,
-				isAuthor: false,
+				isTitle: true,
+				isAuthor: true,
 				isOver: false,
 				isSetWord: false,
 				poem: {},
@@ -117,13 +120,26 @@
 			};
 		},
 		onLoad() {
+			// function setPoemObj(str) {
+			// 	let poemArr = str.split(/\s/g)
+			// 	let title = `《${poemArr[0]}》`
+			// 	let author = poemArr[1]
+			// 	let poemWord = poemArr[2]
+			// 	return {
+			// 		title,
+			// 		author,
+			// 		poemWord
+			// 	}
+			// }
+			let poemArr = poemStr.map(item => setPoemObj(item))
+			Data.poem = [...Data.poem, ...this.poemList, ...poemArr]
 
-			this.init()
-			// this.addResult()
 		},
-		onReady() {},
+		onReady() {
+			this.init()
+		},
 		onShow() {
-
+			// Data.poem = [...Data.poem, this.poemList]
 
 
 		},
@@ -137,8 +153,9 @@
 		methods: {
 			//初始化
 			init() {
-				this.isTitle = false
-				this.isAuthor = false
+				console.log('init');
+				this.isTitle = true;
+				this.isAuthor = true;
 				// 随机
 				let shuffle = this.shufflePoem()
 				this.poem = Data.poem[shuffle]
@@ -204,6 +221,7 @@
 				let arrEmpty = []
 				let arrError = []
 				let arrCla = []
+				// 去除所以空白字符
 				str = str.replace(/\s/g, "");
 				let len = str.match(/。/g).length
 				this.result = {}
@@ -239,12 +257,36 @@
 					arrCla
 				}
 			},
+			// 点击诗，撤回
+			recall(row, ind) {
+				if (this.isSetWord) {
+					return
+				}
+				this.focus = `${row}-${ind}`;
+				if (this.poemWordWrite[row][ind]) {
+					// 清空当前点击诗的文字
+					let word = this.poemWordWrite[row][ind]
+					this.poemWordWrite[row][ind] = ''
+					// 将底部文字显示出来
+					let wordInd = this.poemWordShuffle.indexOf(word)
+					this.poemWordShuffleCla[wordInd] = false
+				}
+			},
+			// 点击下面文字
 			setPoem(word, wordInd) {
 				if (this.poemWordShuffleCla[wordInd]) {
 					return
 				}
 				if (this.isSetWord) {
 					this.isSetWord = true
+					return
+				}
+				let claLen = this.poemWordShuffleCla.filter(item => !item)
+				if (claLen.length <= 2) {
+					if (this.type != 'over') {
+						this.pause()
+						this.type = 'over'
+					}
 					return
 				}
 				let ind = this.focus.split('-')
@@ -340,6 +382,7 @@
 			onFinish() {
 				this.type = 'over'
 			},
+			// 最终结果统计
 			addResult() {
 				let dataResult = uni.getStorageSync('dataResult')
 				let all = Data.poem.length,
@@ -582,7 +625,7 @@
 			.mask {
 				position: absolute;
 				left: 0;
-				right: 0;
+				right: 20rpx;
 				bottom: 0;
 				height: 100%;
 				border-radius: 20rpx;
