@@ -24,7 +24,7 @@
       </view>
     </view>
 
-    <view v-if="poemList.length==0" class="tip">
+    <view v-if="poemList.length===0" class="tip">
       <u-alert :description="description" title="提示" type="primary"></u-alert>
     </view>
 
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import {Data} from "../index/data";
+
 export default {
   data() {
     return {
@@ -133,7 +135,9 @@ export default {
       if (!poemList) {
         poemList = []
       }
-      poemList = [poem, ...poemList]
+      let arr = [poem, ...poemList];
+      arr = [...new Map(arr.map(obj => [obj.title, obj])).values()]
+      poemList = [...arr]
       this.poemList = poemList
       uni.setStorageSync('poemList', poemList)
     },
@@ -144,7 +148,7 @@ export default {
       // }
       // poemList = [poem, ...poemList]
       this.poemList = this.poemList.map(item => {
-        if (item.id == poem.id) {
+        if (item.id === poem.id) {
           item = {
             ...poem
           }

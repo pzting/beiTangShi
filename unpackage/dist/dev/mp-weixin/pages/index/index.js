@@ -189,10 +189,21 @@ var _default = {
   data: function data() {
     return {
       Data: _data.Data,
+      // 临时存储，用于随机
+      DataPoemTemp: [],
       poemStr: _data.poemStr,
-      poemList: uni.getStorageSync('poemList') || [],
       time: 2 * 60 * 1000,
       // time: 2 * 1000,
+      difficulty: {
+        name: '简单',
+        time: 3 * 60 * 1000,
+        curNow: 0,
+        isTitle: true,
+        isAuthor: true,
+        isTitleHide: false,
+        isAuthorHide: false,
+        type: 'simpleness'
+      },
       type: 'pause',
       isTitle: true,
       isAuthor: true,
@@ -221,44 +232,57 @@ var _default = {
     };
   },
   onLoad: function onLoad() {
-    // function setPoemObj(str) {
-    // 	let poemArr = str.split(/\s/g)
-    // 	let title = `《${poemArr[0]}》`
-    // 	let author = poemArr[1]
-    // 	let poemWord = poemArr[2]
-    // 	return {
-    // 		title,
-    // 		author,
-    // 		poemWord
-    // 	}
-    // }
+    var poemList = uni.getStorageSync('poemList') || [];
     var poemArr = _data.poemStr.map(function (item) {
       return (0, _data.setPoemObj)(item);
     });
-    _data.Data.poem = [].concat((0, _toConsumableArray2.default)(_data.Data.poem), (0, _toConsumableArray2.default)(this.poemList), (0, _toConsumableArray2.default)(poemArr));
+    console.log('个数-', poemArr.length, _data.Data.poem.length, '本地：', poemList.length);
+    _data.Data.poem = [].concat((0, _toConsumableArray2.default)(_data.Data.poem), (0, _toConsumableArray2.default)(poemList), (0, _toConsumableArray2.default)(poemArr));
+    console.log('总个数', _data.Data.poem.length);
+    this.DataPoemTemp = (0, _toConsumableArray2.default)(_data.Data.poem);
   },
   onReady: function onReady() {
-    this.init();
+    var me = this;
+    setTimeout(function () {
+      me.init();
+    }, 10);
   },
   onShow: function onShow() {
     // Data.poem = [...Data.poem, this.poemList]
+    var difficultyObj = uni.getStorageSync('difficulty');
+    if (difficultyObj) {
+      this.difficulty = _objectSpread({}, difficultyObj);
+    }
+    this.isTitle = this.difficulty.isTitle;
+    this.isAuthor = this.difficulty.isAuthor;
+
+    //  从缓存拿诗
+    var poemList = uni.getStorageSync('poemList') || [];
+    if (poemList) {
+      var arr = [].concat((0, _toConsumableArray2.default)(_data.Data.poem), (0, _toConsumableArray2.default)(poemList));
+      arr = (0, _toConsumableArray2.default)(new Map(arr.map(function (obj) {
+        return [obj.title, obj];
+      })).values());
+      _data.Data.poem = (0, _toConsumableArray2.default)(arr);
+      this.DataPoemTemp = (0, _toConsumableArray2.default)(_data.Data.poem);
+    }
   },
   watch: {
     type: function type(newValue, oldValue) {
-      if (newValue == 'over') {
+      if (newValue === 'over') {
         this.addResult();
       }
     }
   },
   methods: {
-    //初始化
+    // 初始化
     init: function init() {
-      console.log('init');
-      this.isTitle = true;
-      this.isAuthor = true;
+      this.isTitle = this.difficulty.isTitle;
+      this.isAuthor = this.difficulty.isAuthor;
       // 随机
       var shuffle = this.shufflePoem();
-      this.poem = _data.Data.poem[shuffle];
+      this.poem = this.DataPoemTemp[shuffle];
+      this.DataPoemTemp.splice(shuffle, 1);
       var poemWord = this.poem.poemWord;
       var _this$setArr = this.setArr(poemWord),
         arr = _this$setArr.arr,
@@ -274,17 +298,22 @@ var _default = {
     },
     // 随机诗
     shufflePoem: function shufflePoem() {
-      var shuffle = uni.$u.random(0, _data.Data.poem.length - 1);
-      if (this.poemShuffle.length == _data.Data.poem.length) {
+      var shuffle = uni.$u.random(0, this.DataPoemTemp.length - 1);
+
+      // 随机数量相等
+      if (this.poemShuffle.length === _data.Data.poem.length) {
         this.poemShuffle = [];
+        // 随机完成，重新来过
+        this.DataPoemTemp = (0, _toConsumableArray2.default)(_data.Data.poem);
       }
-      while (true) {
-        if (this.poemShuffle.includes(shuffle)) {
-          shuffle = uni.$u.random(0, _data.Data.poem.length - 1);
-        } else {
-          break;
-        }
-      }
+
+      // while (true) {
+      // 	if (this.poemShuffle.includes(shuffle)) {
+      // 		shuffle = uni.$u.random(0, Data.poem.length - 1)
+      // 	} else {
+      // 		break
+      // 	}
+      // }
       this.poemShuffle.push(shuffle);
       return shuffle;
     },
@@ -297,10 +326,10 @@ var _default = {
     shuffleWord: function shuffleWord() {
       this.poemWordWrite = this.deepClone2DArray(this.arrEmpty);
       this.focus = '0-0';
-      var wordArr = this.poemWordCorrect + '';
+      var wordArr = "".concat(this.poemWordCorrect);
       wordArr = wordArr.split(',');
       wordArr = wordArr.filter(function (item) {
-        return item != '，';
+        return item !== '，';
       });
       this.poemWordShuffle = this.shuffleArray(wordArr);
       this.poemWordShuffleCla = new Array(this.poemWordShuffle.length).fill(false);
@@ -322,7 +351,7 @@ var _default = {
       var arrError = [];
       var arrCla = [];
       // 去除所以空白字符
-      str = str.replace(/\s/g, "");
+      str = str.replace(/\s/g, '');
       var len = str.match(/。/g).length;
       this.result = {};
       this.result.wordLen = str.match(/([^。，])/g).length;
@@ -335,12 +364,12 @@ var _default = {
       var row = 0;
       for (var _i = 0; _i < str.length; _i++) {
         var word = str[_i];
-        if (word == '，' || word == ',') {
+        if (word === '，' || word === ',') {
           arr[row].push(word);
           arrEmpty[row].push(word);
           arrError[row].push('');
           arrCla[row].push(false);
-        } else if (word == '。' || word == '.') {
+        } else if (word === '。' || word === '.') {
           row++;
         } else {
           word && arr[row].push(word);
@@ -380,11 +409,12 @@ var _default = {
         this.isSetWord = true;
         return;
       }
+      // 点击最后一个字，暂停
       var claLen = this.poemWordShuffleCla.filter(function (item) {
         return !item;
       });
-      if (claLen.length <= 2) {
-        if (this.type != 'over') {
+      if (claLen.length === 0) {
+        if (this.type !== 'over') {
           this.pause();
           this.type = 'over';
         }
@@ -396,22 +426,49 @@ var _default = {
       var rowOld = row;
       var colOld = col;
       var len = this.poemWordCorrect[0].length;
+      var wordOld = this.poemWordWrite[rowOld][colOld];
+      this.isOver = false;
+
+      // 先判断当前是否有字，有字就还原
+      if (wordOld) {
+        // 将底部文字显示出来
+        var wordOldInd = this.poemWordShuffle.indexOf(wordOld);
+        this.poemWordShuffleCla[wordOldInd] = false;
+      }
+      this.poemWordShuffleCla[wordInd] = true;
+      this.poemWordWrite[rowOld][colOld] = word;
+
       // 最后一行
-      if (row == this.poemWordCorrect.length - 1) {
-        if (col == len - 1) {
-          if (this.type != 'over') {
+      if (row === this.poemWordCorrect.length - 1) {
+        if (col === len - 1) {
+          var have = false;
+          // 多加一个判断吧，如果有没填写的就回到之前没填写的地方去，否则在结束
+          for (var r = 0; r < this.poemWordWrite.length; r++) {
+            var rData = this.poemWordWrite[r];
+            if (have) {
+              break;
+            }
+            for (var i = 0; i < rData.length; i++) {
+              if (rData[i] === '') {
+                console.log(rData, r, i);
+                row = r - 1;
+                col = i;
+                have = true;
+                break;
+              } else {
+                have = false;
+              }
+            }
+          }
+          if (have === false && this.type !== 'over') {
             this.pause();
             this.type = 'over';
           }
-        }
-        if (col == len) {
+        } else if (col === len) {
           return;
         }
       }
-      this.isOver = false;
-      this.poemWordShuffleCla[wordInd] = true;
-      this.poemWordWrite[rowOld][colOld] = word;
-      if (this.poemWordCorrect[rowOld][colOld] != this.poemWordWrite[rowOld][colOld]) {
+      if (this.poemWordCorrect[rowOld][colOld] !== this.poemWordWrite[rowOld][colOld]) {
         this.poemWordWriteCla[rowOld][colOld] = true;
         this.poemWordError[rowOld][colOld] = {
           word: this.poemWordCorrect[rowOld][colOld],
@@ -442,18 +499,18 @@ var _default = {
       });
       if (col < len) {
         col += 1;
-        if (this.poemWordCorrect[row][col] == ',' || this.poemWordCorrect[row][col] == '，') {
+        if (this.poemWordCorrect[row][col] === ',' || this.poemWordCorrect[row][col] === '，') {
           col += 1;
         }
       }
-      if (col == len && row < this.poemWordCorrect.length - 1) {
+      if (col === len && row < this.poemWordCorrect.length - 1) {
         row += 1;
         col = 0;
       }
-      this.focus = row + '-' + col;
+      this.focus = "".concat(row, "-").concat(col);
       this.isSetWord = false;
     },
-    //开始
+    // 开始
     start: function start() {
       this.$refs.countDown.start();
       this.type = 'start';
@@ -487,16 +544,16 @@ var _default = {
     // 最终结果统计
     addResult: function addResult() {
       var dataResult = uni.getStorageSync('dataResult');
-      var all = _data.Data.poem.length,
-        write = 0,
-        success = 0,
-        error = 0;
+      var all = _data.Data.poem.length;
+      var write = 0;
+      var success = 0;
+      var error = 0;
       if (dataResult) {
         write = Number(dataResult.write);
         success = Number(dataResult.success);
         error = Number(dataResult.error);
       }
-      if (this.result.len == 0) {
+      if (this.result.len === 0) {
         // 成功
         success += 1;
       } else {

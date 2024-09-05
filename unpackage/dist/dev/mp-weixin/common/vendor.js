@@ -775,7 +775,7 @@ function populateParameters(result) {
 
   var parameters = {
     appId: "__UNI__4EC96CC",
-    appName: "ucharts",
+    appName: "快乐背唐诗",
     appVersion: "1.0.0",
     appVersionCode: "100",
     appLanguage: getAppLanguage(hostLanguage),
@@ -874,7 +874,7 @@ var getAppBaseInfo = {
     var hostLanguage = language.replace('_', '-');
     result = sortObject(Object.assign(result, {
       appId: "__UNI__4EC96CC",
-      appName: "ucharts",
+      appName: "快乐背唐诗",
       appVersion: "1.0.0",
       appVersionCode: "100",
       appLanguage: getAppLanguage(hostLanguage),
@@ -1556,7 +1556,7 @@ function initData(vueOptions, context) {
     try {
       data = data.call(context); // 支持 Vue.prototype 上挂的数据
     } catch (e) {
-      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.warn('根据 Vue 的 data 函数初始化小程序 data 失败，请尽量确保 data 函数中不访问 vm 对象，否则可能影响首次数据渲染速度。', data);
       }
     }
@@ -8913,7 +8913,7 @@ function type(obj) {
 
 function flushCallbacks$1(vm) {
     if (vm.__next_tick_callbacks && vm.__next_tick_callbacks.length) {
-        if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+        if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:flushCallbacks[' + vm.__next_tick_callbacks.length + ']');
@@ -8934,14 +8934,14 @@ function nextTick$1(vm, cb) {
     //1.nextTick 之前 已 setData 且 setData 还未回调完成
     //2.nextTick 之前存在 render watcher
     if (!vm.__next_tick_pending && !hasRenderWatcher(vm)) {
-        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:nextVueTick');
         }
         return nextTick(cb, vm)
     }else{
-        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance$1 = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance$1.is || mpInstance$1.route) + '][' + vm._uid +
                 ']:nextMPTick');
@@ -9037,7 +9037,7 @@ var patch = function(oldVnode, vnode) {
     });
     var diffData = this.$shouldDiffData === false ? data : diff(data, mpData);
     if (Object.keys(diffData).length) {
-      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + this._uid +
           ']差量更新',
           JSON.stringify(diffData));
@@ -19366,27 +19366,28 @@ var Data = {
   }, {
     title: '《黄鹤楼送孟浩然之广陵》',
     author: '李白',
-    poemWord: "\u6545\u4EBA\u897F\u8F9E\u9EC4\u9E64\u697C\uFF0C\n\t\u70DF\u82B1\u4E09\u6708\u4E0B\u626C\u5DDE\u3002\n\t\u5B64\u5E06\u8FDC\u5F71\u78A7\u7A7A\u5C3D\uFF0C\n\t\u552F\u89C1\u957F\u6C5F\u5929\u9645\u6D41\u3002"
+    poemWord: "\u6545\u4EBA\u897F\u8F9E\u9EC4\u9E64\u697C\uFF0C\n        \u70DF\u82B1\u4E09\u6708\u4E0B\u626C\u5DDE\u3002\n        \u5B64\u5E06\u8FDC\u5F71\u78A7\u7A7A\u5C3D\uFF0C\n        \u552F\u89C1\u957F\u6C5F\u5929\u9645\u6D41\u3002"
   }, {
     title: '《送元二使安西》',
     author: '王维',
-    poemWord: "\u6E2D\u57CE\u671D\u96E8\u6D65\u8F7B\u5C18\uFF0C\n\t\u5BA2\u820D\u9752\u9752\u67F3\u8272\u65B0\u3002\n\t\u529D\u541B\u66F4\u5C3D\u4E00\u676F\u9152\uFF0C\n\t\u897F\u51FA\u9633\u5173\u65E0\u6545\u4EBA\u3002"
+    poemWord: "\u6E2D\u57CE\u671D\u96E8\u6D65\u8F7B\u5C18\uFF0C\n        \u5BA2\u820D\u9752\u9752\u67F3\u8272\u65B0\u3002\n        \u529D\u541B\u66F4\u5C3D\u4E00\u676F\u9152\uFF0C\n        \u897F\u51FA\u9633\u5173\u65E0\u6545\u4EBA\u3002"
   }, {
     title: '《春望》',
     author: '杜甫',
-    poemWord: "\t\u56FD\u7834\u5C71\u6CB3\u5728\uFF0C\n\t\u57CE\u6625\u8349\u6728\u6DF1\u3002\n\t\u611F\u65F6\u82B1\u6E85\u6CEA\uFF0C\n\t\u6068\u522B\u9E1F\u60CA\u5FC3\u3002\n\t\u70FD\u706B\u8FDE\u4E09\u6708\uFF0C\n\t\u5BB6\u4E66\u62B5\u4E07\u91D1\u3002\n\t\u767D\u5934\u6414\u66F4\u77ED\uFF0C\n\t\u6D51\u6B32\u4E0D\u80DC\u7C2A\u3002"
+    poemWord: "\t\u56FD\u7834\u5C71\u6CB3\u5728\uFF0C\n        \u57CE\u6625\u8349\u6728\u6DF1\u3002\n        \u611F\u65F6\u82B1\u6E85\u6CEA\uFF0C\n        \u6068\u522B\u9E1F\u60CA\u5FC3\u3002\n        \u70FD\u706B\u8FDE\u4E09\u6708\uFF0C\n        \u5BB6\u4E66\u62B5\u4E07\u91D1\u3002\n        \u767D\u5934\u6414\u66F4\u77ED\uFF0C\n        \u6D51\u6B32\u4E0D\u80DC\u7C2A\u3002"
   }, {
     title: '《望庐山瀑布》',
     author: '李白',
-    poemWord: "\u65E5\u7167\u9999\u7089\u751F\u7D2B\u70DF\uFF0C\n\t\t\u9065\u770B\u7011\u5E03\u6302\u524D\u5DDD\u3002\n\t\t\u98DE\u6D41\u76F4\u4E0B\u4E09\u5343\u5C3A\uFF0C\n\t\t\u7591\u662F\u94F6\u6CB3\u843D\u4E5D\u5929\u3002"
+    poemWord: "\u65E5\u7167\u9999\u7089\u751F\u7D2B\u70DF\uFF0C\n        \t\u9065\u770B\u7011\u5E03\u6302\u524D\u5DDD\u3002\n        \t\u98DE\u6D41\u76F4\u4E0B\u4E09\u5343\u5C3A\uFF0C\n        \t\u7591\u662F\u94F6\u6CB3\u843D\u4E5D\u5929\u3002"
   }]
 };
 // 踏马的，简单点
 exports.Data = Data;
-var poemStr = ['`芙蓉楼送辛渐	唐·王昌龄	寒雨连江夜入吴，平明送客楚山孤。洛阳亲友如相问，一片冰心在玉壶。`', "\u60AF\u519C\uFF08\u5176\u4E00\uFF09\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002", "\u9759\u591C\u601D\t\u5510\xB7\u674E\u767D\t\u5E8A\u524D\u660E\u6708\u5149\uFF0C\u7591\u662F\u5730\u4E0A\u971C\u3002\u4E3E\u5934\u671B\u660E\u6708\uFF0C\u4F4E\u5934\u601D\u6545\u4E61\u3002", "\u53E4\u98CE\u4E8C\u9996 / \u60AF\u519C\u4E8C\u9996\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u60AF\u519C\t\u5510\xB7\u674E\u7EC5\t\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u6625\u591C\u559C\u96E8\t\u5510\xB7\u675C\u752B\t\u597D\u96E8\u77E5\u65F6\u8282\uFF0C\u5F53\u6625\u4E43\u53D1\u751F\u3002\u968F\u98CE\u6F5C\u5165\u591C\uFF0C\u6DA6\u7269\u7EC6\u65E0\u58F0\u3002\u91CE\u5F84\u4E91\u4FF1\u9ED1\uFF0C\u6C5F\u8239\u706B\u72EC\u660E\u3002\u6653\u770B\u7EA2\u6E7F\u5904\uFF0C\u82B1\u91CD\u9526\u5B98\u57CE\u3002", "\u7EDD\u53E5\t\u5510\xB7\u675C\u752B\t\u4E24\u4E2A\u9EC4\u9E42\u9E23\u7FE0\u67F3\uFF0C\u4E00\u884C\u767D\u9E6D\u4E0A\u9752\u5929\u3002\u7A97\u542B\u897F\u5CAD\u5343\u79CB\u96EA\uFF0C\u95E8\u6CCA\u4E1C\u5434\u4E07\u91CC\u8239\u3002", "\u4E5D\u6708\u4E5D\u65E5\u5FC6\u5C71\u4E1C\u5144\u5F1F\t\u5510\xB7\u738B\u7EF4\t\u72EC\u5728\u5F02\u4E61\u4E3A\u5F02\u5BA2\uFF0C\u6BCF\u9022\u4F73\u8282\u500D\u601D\u4EB2\u3002\u9065\u77E5\u5144\u5F1F\u767B\u9AD8\u5904\uFF0C\u904D\u63D2\u8331\u8438\u5C11\u4E00\u4EBA\u3002", "\u6C5F\u96EA\t\u5510\xB7\u67F3\u5B97\u5143\t\u5343\u5C71\u9E1F\u98DE\u7EDD\uFF0C\u4E07\u5F84\u4EBA\u8E2A\u706D\u3002\u5B64\u821F\u84D1\u7B20\u7FC1\uFF0C\u72EC\u9493\u5BD2\u6C5F\u96EA\u3002", "\u591C\u96E8\u5BC4\u5317\t\u5510\xB7\u674E\u5546\u9690\t\u541B\u95EE\u5F52\u671F\u672A\u6709\u671F\uFF0C\u5DF4\u5C71\u591C\u96E8\u6DA8\u79CB\u6C60\u3002\u4F55\u5F53\u5171\u526A\u897F\u7A97\u70DB\uFF0C\u5374\u8BDD\u5DF4\u5C71\u591C\u96E8\u65F6\u3002", "\u65E9\u53D1\u767D\u5E1D\u57CE\t\u5510\xB7\u674E\u767D\t\u671D\u8F9E\u767D\u5E1D\u5F69\u4E91\u95F4\uFF0C\u5343\u91CC\u6C5F\u9675\u4E00\u65E5\u8FD8\u3002\u4E24\u5CB8\u733F\u58F0\u557C\u4E0D\u4F4F\uFF0C\u8F7B\u821F\u5DF2\u8FC7\u4E07\u91CD\u5C71\u3002", "\u67AB\u6865\u591C\u6CCA\t\u5510\xB7\u5F20\u7EE7\t\u6708\u843D\u4E4C\u557C\u971C\u6EE1\u5929\uFF0C\u6C5F\u67AB\u6E14\u706B\u5BF9\u6101\u7720\u3002\u59D1\u82CF\u57CE\u5916\u5BD2\u5C71\u5BFA\uFF0C\u591C\u534A\u949F\u58F0\u5230\u5BA2\u8239\u3002", "\u767D\u96EA\u6B4C\u9001\u6B66\u5224\u5B98\u5F52\u4EAC\t\u5510\xB7\u5C91\u53C2\t\u5317\u98CE\u5377\u5730\u767D\u8349\u6298\uFF0C\u80E1\u5929\u516B\u6708\u5373\u98DE\u96EA\u3002\u5FFD\u5982\u4E00\u591C\u6625\u98CE\u6765\uFF0C\u5343\u6811\u4E07\u6811\u68A8\u82B1\u5F00\u3002\u6563\u5165\u73E0\u5E18\u6E7F\u7F57\u5E55\uFF0C\u72D0\u88D8\u4E0D\u6696\u9526\u887E\u8584\u3002\u5C06\u519B\u89D2\u5F13\u4E0D\u5F97\u63A7\uFF0C\u90FD\u62A4\u94C1\u8863\u51B7\u96BE\u7740\u3002\u701A\u6D77\u9611\u5E72\u767E\u4E08\u51B0\uFF0C\u6101\u4E91\u60E8\u6DE1\u4E07\u91CC\u51DD\u3002\u4E2D\u519B\u7F6E\u9152\u996E\u5F52\u5BA2\uFF0C\u80E1\u7434\u7435\u7436\u4E0E\u7F8C\u7B1B\u3002\u7EB7\u7EB7\u66AE\u96EA\u4E0B\u8F95\u95E8\uFF0C\u98CE\u63A3\u7EA2\u65D7\u51BB\u4E0D\u7FFB\u3002\u8F6E\u53F0\u4E1C\u95E8\u9001\u541B\u53BB\uFF0C\u53BB\u65F6\u96EA\u6EE1\u5929\u5C71\u8DEF\u3002\u5C71\u56DE\u8DEF\u8F6C\u4E0D\u89C1\u541B\uFF0C\u96EA\u4E0A\u7A7A\u7559\u9A6C\u884C\u5904\u3002", "\u5BFB\u9690\u8005\u4E0D\u9047\t\u5510\xB7\u8D3E\u5C9B\t\u677E\u4E0B\u95EE\u7AE5\u5B50\uFF0C\u8A00\u5E08\u91C7\u836F\u53BB\u3002\u53EA\u5728\u6B64\u5C71\u4E2D\uFF0C\u4E91\u6DF1\u4E0D\u77E5\u5904\u3002", "\u76F8\u601D\t\u5510\xB7\u738B\u7EF4\t\u7EA2\u8C46\u751F\u5357\u56FD\uFF0C\u6625\u6765\u53D1\u51E0\u679D\u3002\u613F\u541B\u591A\u91C7\u64B7\uFF0C\u6B64\u7269\u6700\u76F8\u601D\u3002", "\u8FC7\u6545\u4EBA\u5E84\t\u5510\xB7\u5B5F\u6D69\u7136\t\u6545\u4EBA\u5177\u9E21\u9ECD\uFF0C\u9080\u6211\u81F3\u7530\u5BB6\u3002\u7EFF\u6811\u6751\u8FB9\u5408\uFF0C\u9752\u5C71\u90ED\u5916\u659C\u3002\u5F00\u8F69\u9762\u573A\u5703\uFF0C\u628A\u9152\u8BDD\u6851\u9EBB\u3002\u5F85\u5230\u91CD\u9633\u65E5\uFF0C\u8FD8\u6765\u5C31\u83CA\u82B1\u3002", "\u9E1F\u9E23\u6DA7\t\u5510\xB7\u738B\u7EF4\t\u4EBA\u95F2\u6842\u82B1\u843D\uFF0C\u591C\u9759\u6625\u5C71\u7A7A\u3002\u6708\u51FA\u60CA\u5C71\u9E1F\uFF0C\u65F6\u9E23\u6625\u6DA7\u4E2D\u3002", "\u8349 / \u8D4B\u5F97\u53E4\u539F\u8349\u9001\u522B\t\u5510\xB7\u767D\u5C45\u6613\t\u79BB\u79BB\u539F\u4E0A\u8349\uFF0C\u4E00\u5C81\u4E00\u67AF\u8363\u3002\u91CE\u706B\u70E7\u4E0D\u5C3D\uFF0C\u6625\u98CE\u5439\u53C8\u751F\u3002\u8FDC\u82B3\u4FB5\u53E4\u9053\uFF0C\u6674\u7FE0\u63A5\u8352\u57CE\u3002\u53C8\u9001\u738B\u5B59\u53BB\uFF0C\u840B\u840B\u6EE1\u522B\u60C5\u3002"];
+var poemStr = [
+// `白雪歌送武判官归京	唐·岑参	北风卷地白草折，胡天八月即飞雪。忽如一夜春风来，千树万树梨花开。散入珠帘湿罗幕，狐裘不暖锦衾薄。将军角弓不得控，都护铁衣冷难着。瀚海阑干百丈冰，愁云惨淡万里凝。中军置酒饮归客，胡琴琵琶与羌笛。纷纷暮雪下辕门，风掣红旗冻不翻。轮台东门送君去，去时雪满天山路。山回路转不见君，雪上空留马行处。`,
+'`芙蓉楼送辛渐	唐·王昌龄	寒雨连江夜入吴，平明送客楚山孤。洛阳亲友如相问，一片冰心在玉壶。`', "\u60AF\u519C\uFF08\u5176\u4E00\uFF09\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002", "\u9759\u591C\u601D\t\u5510\xB7\u674E\u767D\t\u5E8A\u524D\u660E\u6708\u5149\uFF0C\u7591\u662F\u5730\u4E0A\u971C\u3002\u4E3E\u5934\u671B\u660E\u6708\uFF0C\u4F4E\u5934\u601D\u6545\u4E61\u3002", "\u53E4\u98CE\u4E8C\u9996/\u60AF\u519C\u4E8C\u9996\t\u5510\xB7\u674E\u7EC5\t\u6625\u79CD\u4E00\u7C92\u7C9F\uFF0C\u79CB\u6536\u4E07\u9897\u5B50\u3002\u56DB\u6D77\u65E0\u95F2\u7530\uFF0C\u519C\u592B\u72B9\u997F\u6B7B\u3002\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u60AF\u519C\t\u5510\xB7\u674E\u7EC5\t\u9504\u79BE\u65E5\u5F53\u5348\uFF0C\u6C57\u6EF4\u79BE\u4E0B\u571F\u3002\u8C01\u77E5\u76D8\u4E2D\u9910\uFF0C\u7C92\u7C92\u7686\u8F9B\u82E6\u3002", "\u6625\u591C\u559C\u96E8\t\u5510\xB7\u675C\u752B\t\u597D\u96E8\u77E5\u65F6\u8282\uFF0C\u5F53\u6625\u4E43\u53D1\u751F\u3002\u968F\u98CE\u6F5C\u5165\u591C\uFF0C\u6DA6\u7269\u7EC6\u65E0\u58F0\u3002\u91CE\u5F84\u4E91\u4FF1\u9ED1\uFF0C\u6C5F\u8239\u706B\u72EC\u660E\u3002\u6653\u770B\u7EA2\u6E7F\u5904\uFF0C\u82B1\u91CD\u9526\u5B98\u57CE\u3002", "\u7EDD\u53E5\t\u5510\xB7\u675C\u752B\t\u4E24\u4E2A\u9EC4\u9E42\u9E23\u7FE0\u67F3\uFF0C\u4E00\u884C\u767D\u9E6D\u4E0A\u9752\u5929\u3002\u7A97\u542B\u897F\u5CAD\u5343\u79CB\u96EA\uFF0C\u95E8\u6CCA\u4E1C\u5434\u4E07\u91CC\u8239\u3002", "\u4E5D\u6708\u4E5D\u65E5\u5FC6\u5C71\u4E1C\u5144\u5F1F\t\u5510\xB7\u738B\u7EF4\t\u72EC\u5728\u5F02\u4E61\u4E3A\u5F02\u5BA2\uFF0C\u6BCF\u9022\u4F73\u8282\u500D\u601D\u4EB2\u3002\u9065\u77E5\u5144\u5F1F\u767B\u9AD8\u5904\uFF0C\u904D\u63D2\u8331\u8438\u5C11\u4E00\u4EBA\u3002", "\u6C5F\u96EA\t\u5510\xB7\u67F3\u5B97\u5143\t\u5343\u5C71\u9E1F\u98DE\u7EDD\uFF0C\u4E07\u5F84\u4EBA\u8E2A\u706D\u3002\u5B64\u821F\u84D1\u7B20\u7FC1\uFF0C\u72EC\u9493\u5BD2\u6C5F\u96EA\u3002", "\u591C\u96E8\u5BC4\u5317\t\u5510\xB7\u674E\u5546\u9690\t\u541B\u95EE\u5F52\u671F\u672A\u6709\u671F\uFF0C\u5DF4\u5C71\u591C\u96E8\u6DA8\u79CB\u6C60\u3002\u4F55\u5F53\u5171\u526A\u897F\u7A97\u70DB\uFF0C\u5374\u8BDD\u5DF4\u5C71\u591C\u96E8\u65F6\u3002", "\u65E9\u53D1\u767D\u5E1D\u57CE\t\u5510\xB7\u674E\u767D\t\u671D\u8F9E\u767D\u5E1D\u5F69\u4E91\u95F4\uFF0C\u5343\u91CC\u6C5F\u9675\u4E00\u65E5\u8FD8\u3002\u4E24\u5CB8\u733F\u58F0\u557C\u4E0D\u4F4F\uFF0C\u8F7B\u821F\u5DF2\u8FC7\u4E07\u91CD\u5C71\u3002", "\u67AB\u6865\u591C\u6CCA\t\u5510\xB7\u5F20\u7EE7\t\u6708\u843D\u4E4C\u557C\u971C\u6EE1\u5929\uFF0C\u6C5F\u67AB\u6E14\u706B\u5BF9\u6101\u7720\u3002\u59D1\u82CF\u57CE\u5916\u5BD2\u5C71\u5BFA\uFF0C\u591C\u534A\u949F\u58F0\u5230\u5BA2\u8239\u3002", "\u5BFB\u9690\u8005\u4E0D\u9047\t\u5510\xB7\u8D3E\u5C9B\t\u677E\u4E0B\u95EE\u7AE5\u5B50\uFF0C\u8A00\u5E08\u91C7\u836F\u53BB\u3002\u53EA\u5728\u6B64\u5C71\u4E2D\uFF0C\u4E91\u6DF1\u4E0D\u77E5\u5904\u3002", "\u76F8\u601D\t\u5510\xB7\u738B\u7EF4\t\u7EA2\u8C46\u751F\u5357\u56FD\uFF0C\u6625\u6765\u53D1\u51E0\u679D\u3002\u613F\u541B\u591A\u91C7\u64B7\uFF0C\u6B64\u7269\u6700\u76F8\u601D\u3002", "\u8FC7\u6545\u4EBA\u5E84\t\u5510\xB7\u5B5F\u6D69\u7136\t\u6545\u4EBA\u5177\u9E21\u9ECD\uFF0C\u9080\u6211\u81F3\u7530\u5BB6\u3002\u7EFF\u6811\u6751\u8FB9\u5408\uFF0C\u9752\u5C71\u90ED\u5916\u659C\u3002\u5F00\u8F69\u9762\u573A\u5703\uFF0C\u628A\u9152\u8BDD\u6851\u9EBB\u3002\u5F85\u5230\u91CD\u9633\u65E5\uFF0C\u8FD8\u6765\u5C31\u83CA\u82B1\u3002", "\u9E1F\u9E23\u6DA7\t\u5510\xB7\u738B\u7EF4\t\u4EBA\u95F2\u6842\u82B1\u843D\uFF0C\u591C\u9759\u6625\u5C71\u7A7A\u3002\u6708\u51FA\u60CA\u5C71\u9E1F\uFF0C\u65F6\u9E23\u6625\u6DA7\u4E2D\u3002", "\u8349/\u8D4B\u5F97\u53E4\u539F\u8349\u9001\u522B\t\u5510\xB7\u767D\u5C45\u6613\t\u79BB\u79BB\u539F\u4E0A\u8349\uFF0C\u4E00\u5C81\u4E00\u67AF\u8363\u3002\u91CE\u706B\u70E7\u4E0D\u5C3D\uFF0C\u6625\u98CE\u5439\u53C8\u751F\u3002\u8FDC\u82B3\u4FB5\u53E4\u9053\uFF0C\u6674\u7FE0\u63A5\u8352\u57CE\u3002\u53C8\u9001\u738B\u5B59\u53BB\uFF0C\u840B\u840B\u6EE1\u522B\u60C5\u3002", "\u6E38\u5B50\u541F \u5510\xB7\u5B5F\u90CA \u6148\u6BCD\u624B\u4E2D\u7EBF\uFF0C\u6E38\u5B50\u8EAB\u4E0A\u8863\u3002\u4E34\u884C\u5BC6\u5BC6\u7F1D\uFF0C\u610F\u6050\u8FDF\u8FDF\u5F52\u3002\u8C01\u8A00\u5BF8\u8349\u5FC3\uFF0C\u62A5\u5F97\u4E09\u6625\u6656\u3002", "\u79BB\u601D\u4E94\u9996\xB7\u5176\u56DB \u5510\xB7\u5143\u7A39 \u66FE\u7ECF\u6CA7\u6D77\u96BE\u4E3A\u6C34\uFF0C\u9664\u5374\u5DEB\u5C71\u4E0D\u662F\u4E91\u3002\u53D6\u6B21\u82B1\u4E1B\u61D2\u56DE\u987E\uFF0C\u534A\u7F18\u4FEE\u9053\u534A\u7F18\u541B\u3002", "\u9022\u96EA\u5BBF\u8299\u84C9\u5C71\u4E3B\u4EBA \u5510\xB7\u5218\u957F\u537F \u65E5\u66AE\u82CD\u5C71\u8FDC\uFF0C\u5929\u5BD2\u767D\u5C4B\u8D2B\u3002\u67F4\u95E8\u95FB\u72AC\u5420\uFF0C\u98CE\u96EA\u591C\u5F52\u4EBA\u3002", "\u671B\u5929\u95E8\u5C71 \u5510\xB7\u674E\u767D \u5929\u95E8\u4E2D\u65AD\u695A\u6C5F\u5F00\uFF0C\u78A7\u6C34\u4E1C\u6D41\u81F3\u6B64\u56DE\u3002\u4E24\u5CB8\u9752\u5C71\u76F8\u5BF9\u51FA\uFF0C\u5B64\u5E06\u4E00\u7247\u65E5\u8FB9\u6765\u3002", "\u916C\u4E50\u5929\u626C\u5DDE\u521D\u9022\u5E2D\u4E0A\u89C1\u8D60 \u5510\xB7\u5218\u79B9\u9521 \u5DF4\u5C71\u695A\u6C34\u51C4\u51C9\u5730\uFF0C\u4E8C\u5341\u4E09\u5E74\u5F03\u7F6E\u8EAB\u3002\u6000\u65E7\u7A7A\u541F\u95FB\u7B1B\u8D4B\uFF0C\u5230\u4E61\u7FFB\u4F3C\u70C2\u67EF\u4EBA\u3002\u6C89\u821F\u4FA7\u7554\u5343\u5E06\u8FC7\uFF0C\u75C5\u6811\u524D\u5934\u4E07\u6728\u6625\u3002\u4ECA\u65E5\u542C\u541B\u6B4C\u4E00\u66F2\uFF0C\u6682\u51ED\u676F\u9152\u957F\u7CBE\u795E\u3002", "\u9898\u90FD\u57CE\u5357\u5E84 \u5510\xB7\u5D14\u62A4 \u53BB\u5E74\u4ECA\u65E5\u6B64\u95E8\u4E2D\uFF0C\u4EBA\u9762\u6843\u82B1\u76F8\u6620\u7EA2\u3002\u4EBA\u9762\u4E0D\u77E5\u4F55\u5904\u53BB\uFF0C\u6843\u82B1\u4F9D\u65E7\u7B11\u6625\u98CE\u3002", "\u79CB\u5915 \u5510\xB7\u675C\u7267 \u94F6\u70DB\u79CB\u5149\u51B7\u753B\u5C4F\uFF0C\u8F7B\u7F57\u5C0F\u6247\u6251\u6D41\u8424\u3002\u5929\u9636\u591C\u8272\u51C9\u5982\u6C34\uFF0C\u5367\u770B\u7275\u725B\u7EC7\u5973\u661F\u3002", "\u95FB\u738B\u660C\u9F84\u5DE6\u8FC1\u9F99\u6807\u9065\u6709\u6B64\u5BC4 \u5510\xB7\u674E\u767D \u6768\u82B1\u843D\u5C3D\u5B50\u89C4\u557C\uFF0C\u95FB\u9053\u9F99\u6807\u8FC7\u4E94\u6EAA\u3002\u6211\u5BC4\u6101\u5FC3\u4E0E\u660E\u6708\uFF0C\u968F\u541B\u76F4\u5230\u591C\u90CE\u897F\u3002", "\u753B \u5510\xB7\u738B\u7EF4 \u8FDC\u770B\u5C71\u6709\u8272\uFF0C\u8FD1\u542C\u6C34\u65E0\u58F0\u3002\u6625\u53BB\u82B1\u8FD8\u5728\uFF0C\u4EBA\u6765\u9E1F\u4E0D\u60CA\u3002", "\u72EC\u5750\u656C\u4EAD\u5C71 \u5510\xB7\u674E\u767D \u4F17\u9E1F\u9AD8\u98DE\u5C3D\uFF0C\u5B64\u4E91\u72EC\u53BB\u95F2\u3002\u76F8\u770B\u4E24\u4E0D\u538C\uFF0C\u53EA\u6709\u656C\u4EAD\u5C71\u3002", "\u4E4C\u8863\u5DF7 \u5510\xB7\u5218\u79B9\u9521 \u6731\u96C0\u6865\u8FB9\u91CE\u8349\u82B1\uFF0C\u4E4C\u8863\u5DF7\u53E3\u5915\u9633\u659C\u3002\u65E7\u65F6\u738B\u8C22\u5802\u524D\u71D5\uFF0C\u98DE\u5165\u5BFB\u5E38\u767E\u59D3\u5BB6\u3002", "\u79CB\u8BCD\uFF08\u5176\u4E00\uFF09 \u5510\xB7\u5218\u79B9\u9521 \u81EA\u53E4\u9022\u79CB\u60B2\u5BC2\u5BE5\uFF0C\u6211\u8A00\u79CB\u65E5\u80DC\u6625\u671D\u3002\u6674\u7A7A\u4E00\u9E64\u6392\u4E91\u4E0A\uFF0C\u4FBF\u5F15\u8BD7\u60C5\u5230\u78A7\u9704\u3002", "\u4E0D\u7B2C\u540E\u8D4B\u83CA \u5510\xB7\u9EC4\u5DE2 \u5F85\u5230\u79CB\u6765\u4E5D\u6708\u516B\uFF0C\u6211\u82B1\u5F00\u540E\u767E\u82B1\u6740\u3002\u51B2\u5929\u9999\u9635\u900F\u957F\u5B89\uFF0C\u6EE1\u57CE\u5C3D\u5E26\u9EC4\u91D1\u7532\u3002", "\u91D1\u7F15\u8863 \u5510\xB7\u65E0\u540D\u6C0F \u529D\u541B\u83AB\u60DC\u91D1\u7F15\u8863\uFF0C\u529D\u541B\u987B\u60DC\u5C11\u5E74\u65F6\u3002\u82B1\u5F00\u582A\u6298\u76F4\u987B\u6298\uFF0C\u83AB\u5F85\u65E0\u82B1\u7A7A\u6298\u679D\u3002", "\u8702 \u5510\xB7\u7F57\u9690 \u4E0D\u8BBA\u5E73\u5730\u4E0E\u5C71\u5C16\uFF0C\u65E0\u9650\u98CE\u5149\u5C3D\u88AB\u5360\u3002\u91C7\u5F97\u767E\u82B1\u6210\u871C\u540E\uFF0C\u4E3A\u8C01\u8F9B\u82E6\u4E3A\u8C01\u751C \u3002"];
 exports.poemStr = poemStr;
 function setPoemObj(str) {
-  console.log('strsetPoemObj');
   var poemArr = str.split(/\s/g);
   var title = "\u300A".concat(poemArr[0], "\u300B");
   var author = poemArr[1];
@@ -19397,6 +19398,7 @@ function setPoemObj(str) {
     poemWord: poemWord
   };
 }
+
 // let poemArr = poemStr.map(item => setPoemObj(item))
 
 /***/ }),
@@ -20269,6 +20271,148 @@ exports.default = _default;
 /* 237 */,
 /* 238 */,
 /* 239 */
+/*!**************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-textarea/props.js ***!
+  \**************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 输入框的内容
+    value: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.value
+    },
+    // 输入框为空时占位符
+    placeholder: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.placeholder
+    },
+    // 指定placeholder的样式类，注意页面或组件的style中写了scoped时，需要在类名前写/deep/
+    placeholderClass: {
+      type: String,
+      default: uni.$u.props.input.placeholderClass
+    },
+    // 指定placeholder的样式
+    placeholderStyle: {
+      type: [String, Object],
+      default: uni.$u.props.input.placeholderStyle
+    },
+    // 输入框高度
+    height: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.height
+    },
+    // 设置键盘右下角按钮的文字，仅微信小程序，App-vue和H5有效
+    confirmType: {
+      type: String,
+      default: uni.$u.props.textarea.confirmType
+    },
+    // 是否禁用
+    disabled: {
+      type: Boolean,
+      default: uni.$u.props.textarea.disabled
+    },
+    // 是否显示统计字数
+    count: {
+      type: Boolean,
+      default: uni.$u.props.textarea.count
+    },
+    // 是否自动获取焦点，nvue不支持，H5取决于浏览器的实现
+    focus: {
+      type: Boolean,
+      default: uni.$u.props.textarea.focus
+    },
+    // 是否自动增加高度
+    autoHeight: {
+      type: Boolean,
+      default: uni.$u.props.textarea.autoHeight
+    },
+    // 如果textarea是在一个position:fixed的区域，需要显示指定属性fixed为true
+    fixed: {
+      type: Boolean,
+      default: uni.$u.props.textarea.fixed
+    },
+    // 指定光标与键盘的距离
+    cursorSpacing: {
+      type: Number,
+      default: uni.$u.props.textarea.cursorSpacing
+    },
+    // 指定focus时的光标位置
+    cursor: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.cursor
+    },
+    // 是否显示键盘上方带有”完成“按钮那一栏，
+    showConfirmBar: {
+      type: Boolean,
+      default: uni.$u.props.textarea.showConfirmBar
+    },
+    // 光标起始位置，自动聚焦时有效，需与selection-end搭配使用
+    selectionStart: {
+      type: Number,
+      default: uni.$u.props.textarea.selectionStart
+    },
+    // 光标结束位置，自动聚焦时有效，需与selection-start搭配使用
+    selectionEnd: {
+      type: Number,
+      default: uni.$u.props.textarea.selectionEnd
+    },
+    // 键盘弹起时，是否自动上推页面
+    adjustPosition: {
+      type: Boolean,
+      default: uni.$u.props.textarea.adjustPosition
+    },
+    // 是否去掉 iOS 下的默认内边距，只微信小程序有效
+    disableDefaultPadding: {
+      type: Boolean,
+      default: uni.$u.props.textarea.disableDefaultPadding
+    },
+    // focus时，点击页面的时候不收起键盘，只微信小程序有效
+    holdKeyboard: {
+      type: Boolean,
+      default: uni.$u.props.textarea.holdKeyboard
+    },
+    // 最大输入长度，设置为 -1 的时候不限制最大长度
+    maxlength: {
+      type: [String, Number],
+      default: uni.$u.props.textarea.maxlength
+    },
+    // 边框类型，surround-四周边框，bottom-底部边框
+    border: {
+      type: String,
+      default: uni.$u.props.textarea.border
+    },
+    // 用于处理或者过滤输入框内容的方法
+    formatter: {
+      type: [Function, null],
+      default: uni.$u.props.textarea.formatter
+    },
+    // 是否忽略组件内对文本合成系统事件的处理
+    ignoreCompositionEvent: {
+      type: Boolean,
+      default: true
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 240 */,
+/* 241 */,
+/* 242 */,
+/* 243 */,
+/* 244 */,
+/* 245 */
 /*!****************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-cell-group/props.js ***!
   \****************************************************************************************/
@@ -20300,14 +20444,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 240 */,
-/* 241 */,
-/* 242 */,
-/* 243 */,
-/* 244 */,
-/* 245 */,
 /* 246 */,
-/* 247 */
+/* 247 */,
+/* 248 */,
+/* 249 */,
+/* 250 */,
+/* 251 */,
+/* 252 */,
+/* 253 */
 /*!**********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-cell/props.js ***!
   \**********************************************************************************/
@@ -20435,14 +20579,172 @@ exports.default = _default2;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 248 */,
-/* 249 */,
-/* 250 */,
-/* 251 */,
-/* 252 */,
-/* 253 */,
 /* 254 */,
-/* 255 */
+/* 255 */,
+/* 256 */,
+/* 257 */,
+/* 258 */,
+/* 259 */,
+/* 260 */,
+/* 261 */
+/*!***********************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-empty/props.js ***!
+  \***********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // 内置图标名称，或图片路径，建议绝对路径
+    icon: {
+      type: String,
+      default: uni.$u.props.empty.icon
+    },
+    // 提示文字
+    text: {
+      type: String,
+      default: uni.$u.props.empty.text
+    },
+    // 文字颜色
+    textColor: {
+      type: String,
+      default: uni.$u.props.empty.textColor
+    },
+    // 文字大小
+    textSize: {
+      type: [String, Number],
+      default: uni.$u.props.empty.textSize
+    },
+    // 图标的颜色
+    iconColor: {
+      type: String,
+      default: uni.$u.props.empty.iconColor
+    },
+    // 图标的大小
+    iconSize: {
+      type: [String, Number],
+      default: uni.$u.props.empty.iconSize
+    },
+    // 选择预置的图标类型
+    mode: {
+      type: String,
+      default: uni.$u.props.empty.mode
+    },
+    //  图标宽度，单位px
+    width: {
+      type: [String, Number],
+      default: uni.$u.props.empty.width
+    },
+    // 图标高度，单位px
+    height: {
+      type: [String, Number],
+      default: uni.$u.props.empty.height
+    },
+    // 是否显示组件
+    show: {
+      type: Boolean,
+      default: uni.$u.props.empty.show
+    },
+    // 组件距离上一个元素之间的距离，默认px单位
+    marginTop: {
+      type: [String, Number],
+      default: uni.$u.props.empty.marginTop
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 262 */,
+/* 263 */,
+/* 264 */,
+/* 265 */,
+/* 266 */,
+/* 267 */,
+/* 268 */,
+/* 269 */
+/*!****************************************************************************************!*\
+  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-subsection/props.js ***!
+  \****************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  props: {
+    // tab的数据
+    list: {
+      type: Array,
+      default: uni.$u.props.subsection.list
+    },
+    // 当前活动的tab的index
+    current: {
+      type: [String, Number],
+      default: uni.$u.props.subsection.current
+    },
+    // 激活的颜色
+    activeColor: {
+      type: String,
+      default: uni.$u.props.subsection.activeColor
+    },
+    // 未激活的颜色
+    inactiveColor: {
+      type: String,
+      default: uni.$u.props.subsection.inactiveColor
+    },
+    // 模式选择，mode=button为按钮形式，mode=subsection时为分段模式
+    mode: {
+      type: String,
+      default: uni.$u.props.subsection.mode
+    },
+    // 字体大小
+    fontSize: {
+      type: [String, Number],
+      default: uni.$u.props.subsection.fontSize
+    },
+    // 激活tab的字体是否加粗
+    bold: {
+      type: Boolean,
+      default: uni.$u.props.subsection.bold
+    },
+    // mode = button时，组件背景颜色
+    bgColor: {
+      type: String,
+      default: uni.$u.props.subsection.bgColor
+    },
+    // 从list元素对象中读取的键名
+    keyName: {
+      type: String,
+      default: uni.$u.props.subsection.keyName
+    }
+  }
+};
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 270 */,
+/* 271 */,
+/* 272 */,
+/* 273 */,
+/* 274 */,
+/* 275 */,
+/* 276 */,
+/* 277 */
 /*!***********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-modal/props.js ***!
   \***********************************************************************************/
@@ -20544,14 +20846,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 256 */,
-/* 257 */,
-/* 258 */,
-/* 259 */,
-/* 260 */,
-/* 261 */,
-/* 262 */,
-/* 263 */
+/* 278 */,
+/* 279 */,
+/* 280 */,
+/* 281 */,
+/* 282 */,
+/* 283 */,
+/* 284 */,
+/* 285 */
 /*!****************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/props.js ***!
   \****************************************************************************************/
@@ -20593,7 +20895,7 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 264 */
+/* 286 */
 /*!*********************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/transition.js ***!
   \*********************************************************************************************/
@@ -20610,7 +20912,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _regenerator = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/regenerator */ 56));
 var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ 58));
-var _nvueAniMap = _interopRequireDefault(__webpack_require__(/*! ./nvue.ani-map.js */ 265));
+var _nvueAniMap = _interopRequireDefault(__webpack_require__(/*! ./nvue.ani-map.js */ 287));
 // 定义一个一定时间后自动成功的promise，让调用nextTick方法处，进入下一个then方法
 var nextTick = function nextTick() {
   return new Promise(function (resolve) {
@@ -20702,7 +21004,7 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 265 */
+/* 287 */
 /*!***********************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-transition/nvue.ani-map.js ***!
   \***********************************************************************************************/
@@ -20895,14 +21197,14 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 266 */,
-/* 267 */,
-/* 268 */,
-/* 269 */,
-/* 270 */,
-/* 271 */,
-/* 272 */,
-/* 273 */
+/* 288 */,
+/* 289 */,
+/* 290 */,
+/* 291 */,
+/* 292 */,
+/* 293 */,
+/* 294 */,
+/* 295 */
 /*!**********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-icon/icons.js ***!
   \**********************************************************************************/
@@ -21133,7 +21435,7 @@ var _default = {
 exports.default = _default;
 
 /***/ }),
-/* 274 */
+/* 296 */
 /*!**********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-icon/props.js ***!
   \**********************************************************************************/
@@ -21240,14 +21542,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 275 */,
-/* 276 */,
-/* 277 */,
-/* 278 */,
-/* 279 */,
-/* 280 */,
-/* 281 */,
-/* 282 */
+/* 297 */,
+/* 298 */,
+/* 299 */,
+/* 300 */,
+/* 301 */,
+/* 302 */,
+/* 303 */,
+/* 304 */
 /*!******************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-loading-icon/props.js ***!
   \******************************************************************************************/
@@ -21324,14 +21626,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 283 */,
-/* 284 */,
-/* 285 */,
-/* 286 */,
-/* 287 */,
-/* 288 */,
-/* 289 */,
-/* 290 */
+/* 305 */,
+/* 306 */,
+/* 307 */,
+/* 308 */,
+/* 309 */,
+/* 310 */,
+/* 311 */,
+/* 312 */
 /*!************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/libs/util/async-validator.js ***!
   \************************************************************************************/
@@ -21369,7 +21671,7 @@ function _extends() {
 var formatRegExp = /%[sdj%]/g;
 var warning = function warning() {}; // don't print warning message when in production env or node runtime
 
-if (typeof process !== 'undefined' && Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"ucharts","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}) && "development" !== 'production' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+if (typeof process !== 'undefined' && Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"快乐背唐诗","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}) && "development" !== 'production' && typeof window !== 'undefined' && typeof document !== 'undefined') {
   warning = function warning(type, errors) {
     if (typeof console !== 'undefined' && console.warn) {
       if (errors.every(function (e) {
@@ -22512,10 +22814,10 @@ Schema.warning = warning;
 Schema.messages = messages;
 var _default = Schema; // # sourceMappingURL=index.js.map
 exports.default = _default;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../搜狗高速下载/HBuilderX.3.2.9.20210927/HBuilderX/plugins/uniapp-cli/node_modules/node-libs-browser/mock/process.js */ 291)))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../../../../../搜狗高速下载/HBuilderX.3.2.9.20210927/HBuilderX/plugins/uniapp-cli/node_modules/node-libs-browser/mock/process.js */ 313)))
 
 /***/ }),
-/* 291 */
+/* 313 */
 /*!********************************************************!*\
   !*** ./node_modules/node-libs-browser/mock/process.js ***!
   \********************************************************/
@@ -22546,7 +22848,7 @@ exports.binding = function (name) {
     var path;
     exports.cwd = function () { return cwd };
     exports.chdir = function (dir) {
-        if (!path) path = __webpack_require__(/*! path */ 292);
+        if (!path) path = __webpack_require__(/*! path */ 314);
         cwd = path.resolve(dir, cwd);
     };
 })();
@@ -22559,7 +22861,7 @@ exports.features = {};
 
 
 /***/ }),
-/* 292 */
+/* 314 */
 /*!***********************************************!*\
   !*** ./node_modules/path-browserify/index.js ***!
   \***********************************************/
@@ -22869,15 +23171,15 @@ var substr = 'ab'.substr(-1) === 'b'
     }
 ;
 
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../node-libs-browser/mock/process.js */ 291)))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../node-libs-browser/mock/process.js */ 313)))
 
 /***/ }),
-/* 293 */,
-/* 294 */,
-/* 295 */,
-/* 296 */,
-/* 297 */,
-/* 298 */
+/* 315 */,
+/* 316 */,
+/* 317 */,
+/* 318 */,
+/* 319 */,
+/* 320 */
 /*!**********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-line/props.js ***!
   \**********************************************************************************/
@@ -22928,21 +23230,28 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 299 */,
-/* 300 */,
-/* 301 */,
-/* 302 */,
-/* 303 */,
-/* 304 */,
-/* 305 */,
-/* 306 */,
-/* 307 */,
-/* 308 */,
-/* 309 */,
-/* 310 */,
-/* 311 */,
-/* 312 */,
-/* 313 */
+/* 321 */,
+/* 322 */,
+/* 323 */,
+/* 324 */,
+/* 325 */,
+/* 326 */,
+/* 327 */,
+/* 328 */,
+/* 329 */,
+/* 330 */,
+/* 331 */,
+/* 332 */,
+/* 333 */,
+/* 334 */,
+/* 335 */,
+/* 336 */,
+/* 337 */,
+/* 338 */,
+/* 339 */,
+/* 340 */,
+/* 341 */,
+/* 342 */
 /*!***********************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-popup/props.js ***!
   \***********************************************************************************/
@@ -23039,14 +23348,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 314 */,
-/* 315 */,
-/* 316 */,
-/* 317 */,
-/* 318 */,
-/* 319 */,
-/* 320 */,
-/* 321 */
+/* 343 */,
+/* 344 */,
+/* 345 */,
+/* 346 */,
+/* 347 */,
+/* 348 */,
+/* 349 */,
+/* 350 */
 /*!*************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-overlay/props.js ***!
   \*************************************************************************************/
@@ -23088,14 +23397,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 322 */,
-/* 323 */,
-/* 324 */,
-/* 325 */,
-/* 326 */,
-/* 327 */,
-/* 328 */,
-/* 329 */
+/* 351 */,
+/* 352 */,
+/* 353 */,
+/* 354 */,
+/* 355 */,
+/* 356 */,
+/* 357 */,
+/* 358 */
 /*!****************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-status-bar/props.js ***!
   \****************************************************************************************/
@@ -23121,14 +23430,14 @@ exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ }),
-/* 330 */,
-/* 331 */,
-/* 332 */,
-/* 333 */,
-/* 334 */,
-/* 335 */,
-/* 336 */,
-/* 337 */
+/* 359 */,
+/* 360 */,
+/* 361 */,
+/* 362 */,
+/* 363 */,
+/* 364 */,
+/* 365 */,
+/* 366 */
 /*!*****************************************************************************************!*\
   !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-safe-bottom/props.js ***!
   \*****************************************************************************************/
@@ -23146,260 +23455,6 @@ var _default = {
   props: {}
 };
 exports.default = _default;
-
-/***/ }),
-/* 338 */,
-/* 339 */,
-/* 340 */,
-/* 341 */,
-/* 342 */,
-/* 343 */,
-/* 344 */,
-/* 345 */,
-/* 346 */,
-/* 347 */,
-/* 348 */,
-/* 349 */,
-/* 350 */,
-/* 351 */,
-/* 352 */,
-/* 353 */,
-/* 354 */,
-/* 355 */,
-/* 356 */,
-/* 357 */,
-/* 358 */,
-/* 359 */,
-/* 360 */,
-/* 361 */,
-/* 362 */,
-/* 363 */,
-/* 364 */,
-/* 365 */
-/*!**************************************************************************************!*\
-  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-textarea/props.js ***!
-  \**************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _default = {
-  props: {
-    // 输入框的内容
-    value: {
-      type: [String, Number],
-      default: uni.$u.props.textarea.value
-    },
-    // 输入框为空时占位符
-    placeholder: {
-      type: [String, Number],
-      default: uni.$u.props.textarea.placeholder
-    },
-    // 指定placeholder的样式类，注意页面或组件的style中写了scoped时，需要在类名前写/deep/
-    placeholderClass: {
-      type: String,
-      default: uni.$u.props.input.placeholderClass
-    },
-    // 指定placeholder的样式
-    placeholderStyle: {
-      type: [String, Object],
-      default: uni.$u.props.input.placeholderStyle
-    },
-    // 输入框高度
-    height: {
-      type: [String, Number],
-      default: uni.$u.props.textarea.height
-    },
-    // 设置键盘右下角按钮的文字，仅微信小程序，App-vue和H5有效
-    confirmType: {
-      type: String,
-      default: uni.$u.props.textarea.confirmType
-    },
-    // 是否禁用
-    disabled: {
-      type: Boolean,
-      default: uni.$u.props.textarea.disabled
-    },
-    // 是否显示统计字数
-    count: {
-      type: Boolean,
-      default: uni.$u.props.textarea.count
-    },
-    // 是否自动获取焦点，nvue不支持，H5取决于浏览器的实现
-    focus: {
-      type: Boolean,
-      default: uni.$u.props.textarea.focus
-    },
-    // 是否自动增加高度
-    autoHeight: {
-      type: Boolean,
-      default: uni.$u.props.textarea.autoHeight
-    },
-    // 如果textarea是在一个position:fixed的区域，需要显示指定属性fixed为true
-    fixed: {
-      type: Boolean,
-      default: uni.$u.props.textarea.fixed
-    },
-    // 指定光标与键盘的距离
-    cursorSpacing: {
-      type: Number,
-      default: uni.$u.props.textarea.cursorSpacing
-    },
-    // 指定focus时的光标位置
-    cursor: {
-      type: [String, Number],
-      default: uni.$u.props.textarea.cursor
-    },
-    // 是否显示键盘上方带有”完成“按钮那一栏，
-    showConfirmBar: {
-      type: Boolean,
-      default: uni.$u.props.textarea.showConfirmBar
-    },
-    // 光标起始位置，自动聚焦时有效，需与selection-end搭配使用
-    selectionStart: {
-      type: Number,
-      default: uni.$u.props.textarea.selectionStart
-    },
-    // 光标结束位置，自动聚焦时有效，需与selection-start搭配使用
-    selectionEnd: {
-      type: Number,
-      default: uni.$u.props.textarea.selectionEnd
-    },
-    // 键盘弹起时，是否自动上推页面
-    adjustPosition: {
-      type: Boolean,
-      default: uni.$u.props.textarea.adjustPosition
-    },
-    // 是否去掉 iOS 下的默认内边距，只微信小程序有效
-    disableDefaultPadding: {
-      type: Boolean,
-      default: uni.$u.props.textarea.disableDefaultPadding
-    },
-    // focus时，点击页面的时候不收起键盘，只微信小程序有效
-    holdKeyboard: {
-      type: Boolean,
-      default: uni.$u.props.textarea.holdKeyboard
-    },
-    // 最大输入长度，设置为 -1 的时候不限制最大长度
-    maxlength: {
-      type: [String, Number],
-      default: uni.$u.props.textarea.maxlength
-    },
-    // 边框类型，surround-四周边框，bottom-底部边框
-    border: {
-      type: String,
-      default: uni.$u.props.textarea.border
-    },
-    // 用于处理或者过滤输入框内容的方法
-    formatter: {
-      type: [Function, null],
-      default: uni.$u.props.textarea.formatter
-    },
-    // 是否忽略组件内对文本合成系统事件的处理
-    ignoreCompositionEvent: {
-      type: Boolean,
-      default: true
-    }
-  }
-};
-exports.default = _default;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
-
-/***/ }),
-/* 366 */,
-/* 367 */,
-/* 368 */,
-/* 369 */,
-/* 370 */,
-/* 371 */,
-/* 372 */,
-/* 373 */,
-/* 374 */,
-/* 375 */,
-/* 376 */,
-/* 377 */,
-/* 378 */,
-/* 379 */
-/*!***********************************************************************************!*\
-  !*** D:/STUDY/uniapp/beiTangShi/uni_modules/uview-ui/components/u-empty/props.js ***!
-  \***********************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _default = {
-  props: {
-    // 内置图标名称，或图片路径，建议绝对路径
-    icon: {
-      type: String,
-      default: uni.$u.props.empty.icon
-    },
-    // 提示文字
-    text: {
-      type: String,
-      default: uni.$u.props.empty.text
-    },
-    // 文字颜色
-    textColor: {
-      type: String,
-      default: uni.$u.props.empty.textColor
-    },
-    // 文字大小
-    textSize: {
-      type: [String, Number],
-      default: uni.$u.props.empty.textSize
-    },
-    // 图标的颜色
-    iconColor: {
-      type: String,
-      default: uni.$u.props.empty.iconColor
-    },
-    // 图标的大小
-    iconSize: {
-      type: [String, Number],
-      default: uni.$u.props.empty.iconSize
-    },
-    // 选择预置的图标类型
-    mode: {
-      type: String,
-      default: uni.$u.props.empty.mode
-    },
-    //  图标宽度，单位px
-    width: {
-      type: [String, Number],
-      default: uni.$u.props.empty.width
-    },
-    // 图标高度，单位px
-    height: {
-      type: [String, Number],
-      default: uni.$u.props.empty.height
-    },
-    // 是否显示组件
-    show: {
-      type: Boolean,
-      default: uni.$u.props.empty.show
-    },
-    // 组件距离上一个元素之间的距离，默认px单位
-    marginTop: {
-      type: [String, Number],
-      default: uni.$u.props.empty.marginTop
-    }
-  }
-};
-exports.default = _default;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
 
 /***/ })
 ]]);

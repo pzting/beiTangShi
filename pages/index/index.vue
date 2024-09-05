@@ -67,12 +67,12 @@
       </view>
     </view>
     <!-- 底下文字 -->
-    <view v-if="type !== 'over'" class="wordBox">
+    <view v-if="type !== 'over'" :class="{ overflowHide: type !== 'start' }" class="wordBox">
       <view :class="{ hide: type === 'start' }" class="mask">
         <u-button :plain="true" text="开始" type="primary" @click="start"></u-button>
       </view>
       <template v-for="(word, ind) in poemWordShuffle">
-        <view v-if="word !== ',' && word !== '，'" :class="{ vanish: poemWordShuffleCla[ind] }" class="word"
+        <view :class="{ vanish: poemWordShuffleCla[ind] }" class="word"
               @tap="setPoem(word, ind)">
           {{ word }}
         </view>
@@ -97,7 +97,6 @@ export default {
       // 临时存储，用于随机
       DataPoemTemp: [],
       poemStr,
-      poemList: uni.getStorageSync('poemList') || [],
       time: 2 * 60 * 1000,
       // time: 2 * 1000,
       difficulty: {
@@ -139,8 +138,11 @@ export default {
   },
 
   onLoad() {
+    let poemList = uni.getStorageSync('poemList') || []
     const poemArr = poemStr.map((item) => setPoemObj(item));
-    Data.poem = [...Data.poem, ...this.poemList, ...poemArr];
+    console.log('个数-', poemArr.length, Data.poem.length, '本地：', poemList.length)
+    Data.poem = [...Data.poem, ...poemList, ...poemArr];
+    console.log('总个数', Data.poem.length)
     this.DataPoemTemp = [...Data.poem];
   },
 
@@ -159,6 +161,15 @@ export default {
     }
     this.isTitle = this.difficulty.isTitle
     this.isAuthor = this.difficulty.isAuthor
+
+    //  从缓存拿诗
+    let poemList = uni.getStorageSync('poemList') || []
+    if (poemList) {
+      let arr = [...Data.poem, ...poemList];
+      arr = [...new Map(arr.map(obj => [obj.title, obj])).values()]
+      Data.poem = [...arr]
+      this.DataPoemTemp = [...Data.poem];
+    }
   },
 
   watch: {
@@ -228,7 +239,7 @@ export default {
       this.focus = '0-0';
       let wordArr = `${this.poemWordCorrect}`;
       wordArr = wordArr.split(',');
-      wordArr = wordArr.filter((item) => item != '，');
+      wordArr = wordArr.filter((item) => item !== '，');
       this.poemWordShuffle = this.shuffleArray(wordArr);
       this.poemWordShuffleCla = new Array(this.poemWordShuffle.length).fill(false);
     },
@@ -309,9 +320,10 @@ export default {
         this.isSetWord = true;
         return;
       }
+      // 点击最后一个字，暂停
       const claLen = this.poemWordShuffleCla.filter((item) => !item);
-      if (claLen.length <= 2) {
-        if (this.type != 'over') {
+      if (claLen.length === 0) {
+        if (this.type !== 'over') {
           this.pause();
           this.type = 'over';
         }
@@ -324,22 +336,52 @@ export default {
       const rowOld = row;
       const colOld = col;
       const len = this.poemWordCorrect[0].length;
+      let wordOld = this.poemWordWrite[rowOld][colOld]
+
+      this.isOver = false;
+
+
+      // 先判断当前是否有字，有字就还原
+      if (wordOld) {
+        // 将底部文字显示出来
+        const wordOldInd = this.poemWordShuffle.indexOf(wordOld);
+        this.poemWordShuffleCla[wordOldInd] = false;
+      }
+      this.poemWordShuffleCla[wordInd] = true;
+      this.poemWordWrite[rowOld][colOld] = word;
+
       // 最后一行
       if (row === this.poemWordCorrect.length - 1) {
         if (col === len - 1) {
-          if (this.type != 'over') {
+          let have = false
+          // 多加一个判断吧，如果有没填写的就回到之前没填写的地方去，否则在结束
+          for (let r = 0; r < this.poemWordWrite.length; r++) {
+            let rData = this.poemWordWrite[r]
+            if (have) {
+              break
+            }
+            for (let i = 0; i < rData.length; i++) {
+              if (rData[i] === '') {
+                console.log(rData, r, i)
+                row = r - 1;
+                col = i;
+                have = true
+                break
+              } else {
+                have = false
+              }
+            }
+          }
+          if (have === false && this.type !== 'over') {
             this.pause();
             this.type = 'over';
           }
-        }
-        if (col === len) {
+        } else if (col === len) {
           return;
         }
       }
-      this.isOver = false;
-      this.poemWordShuffleCla[wordInd] = true;
-      this.poemWordWrite[rowOld][colOld] = word;
-      if (this.poemWordCorrect[rowOld][colOld] != this.poemWordWrite[rowOld][colOld]) {
+
+      if (this.poemWordCorrect[rowOld][colOld] !== this.poemWordWrite[rowOld][colOld]) {
         this.poemWordWriteCla[rowOld][colOld] = true;
         this.poemWordError[rowOld][colOld] = ({
           word: this.poemWordCorrect[rowOld][colOld],
@@ -465,6 +507,8 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-height: 500rpx;
+    overflow-y: auto;
 
     .title {
       // text-align: center;
@@ -665,8 +709,11 @@ export default {
     overflow-y: auto;
     /*  #ifdef   WEB */
     margin-bottom: 60px;
-
     /*  #endif  */
+    &.overflowHide {
+      overflow: hidden;
+    }
+
     .mask {
       position: absolute;
       left: 0;

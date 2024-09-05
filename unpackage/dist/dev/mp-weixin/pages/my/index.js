@@ -100,14 +100,20 @@ __webpack_require__.r(__webpack_exports__);
 var components
 try {
   components = {
-    uCellGroup: function () {
-      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-cell-group/u-cell-group */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-cell-group/u-cell-group")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-cell-group/u-cell-group.vue */ 234))
+    uSubsection: function () {
+      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-subsection/u-subsection */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-subsection/u-subsection")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-subsection/u-subsection.vue */ 264))
     },
     uCell: function () {
-      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-cell/u-cell */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-cell/u-cell")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-cell/u-cell.vue */ 242))
+      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-cell/u-cell */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-cell/u-cell")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-cell/u-cell.vue */ 248))
+    },
+    uButton: function () {
+      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-button/u-button */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-button/u-button")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-button/u-button.vue */ 195))
+    },
+    uCellGroup: function () {
+      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-cell-group/u-cell-group */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-cell-group/u-cell-group")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-cell-group/u-cell-group.vue */ 240))
     },
     uModal: function () {
-      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-modal/u-modal */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-modal/u-modal")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-modal/u-modal.vue */ 250))
+      return Promise.all(/*! import() | uni_modules/uview-ui/components/u-modal/u-modal */[__webpack_require__.e("common/vendor"), __webpack_require__.e("uni_modules/uview-ui/components/u-modal/u-modal")]).then(__webpack_require__.bind(null, /*! @/uni_modules/uview-ui/components/u-modal/u-modal.vue */ 272))
     },
   }
 } catch (e) {
@@ -133,9 +139,15 @@ var render = function () {
   var _c = _vm._self._c || _h
   if (!_vm._isMounted) {
     _vm.e0 = function ($event) {
-      _vm.showClear = true
+      _vm.isSetDifficulty = false
     }
     _vm.e1 = function ($event) {
+      _vm.isSetDifficulty = true
+    }
+    _vm.e2 = function ($event) {
+      _vm.showClear = true
+    }
+    _vm.e3 = function ($event) {
       _vm.showClear = false
     }
   }
@@ -203,22 +215,145 @@ var _data = __webpack_require__(/*! ./data.js */ 184);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 var _default = {
   components: {},
   data: function data() {
     return {
+      isSetDifficulty: false,
       showClear: false,
       winRate: '暂无',
       Data: _data.Data,
       key: 'value',
+      curNow: 0,
+      difficulty: {},
+      difficultyArr: [{
+        name: '简单',
+        time: 3 * 60 * 1000,
+        curNow: 0,
+        isTitle: true,
+        isAuthor: true,
+        isTitleHide: false,
+        isAuthorHide: false,
+        type: 'simpleness'
+      }, {
+        name: '一般',
+        time: 2 * 60 * 1000,
+        curNow: 1,
+        isTitle: false,
+        isAuthor: true,
+        isTitleHide: false,
+        isAuthorHide: false,
+        type: 'ordinary'
+      }, {
+        name: '困难',
+        time: 1.5 * 60 * 1000,
+        curNow: 2,
+        isTitle: true,
+        isAuthor: false,
+        isTitleHide: true,
+        isAuthorHide: false,
+        type: 'difficulty'
+      }, {
+        name: '极限',
+        time: 50 * 1000,
+        curNow: 3,
+        isTitle: true,
+        isAuthor: true,
+        isTitleHide: true,
+        isAuthorHide: true,
+        type: 'extremity'
+      }],
       rankingData: {},
       dataResult: {}
     };
+  },
+  watch: {
+    isSetDifficulty: function isSetDifficulty(newValue, oldValue) {
+      if (newValue) {
+        var difficultyObj = uni.getStorageSync('difficulty');
+        if (difficultyObj) {
+          this.curNow = difficultyObj.curNow;
+        }
+      }
+    }
+  },
+  onLoad: function onLoad() {
+    // 没有的话，添加难度默认值
+    var difficultyObj = uni.getStorageSync('difficulty');
+    if (!difficultyObj) {
+      this.difficulty = this.difficultyArr[this.curNow];
+      uni.setStorageSync('difficulty', this.difficultyArr[this.curNow]);
+    } else {
+      this.difficulty = difficultyObj;
+    }
   },
   onShow: function onShow() {
     this.getRanking();
   },
   methods: {
+    // 设置难度等级
+    setDifficulty: function setDifficulty() {
+      this.difficulty = this.difficultyArr[this.curNow];
+      uni.setStorageSync('difficulty', this.difficultyArr[this.curNow]);
+      uni.$u.toast('操作成功~');
+      this.isSetDifficulty = false;
+    },
+    sectionChange: function sectionChange(index) {
+      this.curNow = index;
+    },
     clear: function clear() {
       this.showClear = false;
       var dataResult = uni.getStorageSync('dataResult');
@@ -266,15 +401,13 @@ var _default = {
         success: success,
         error: error
       };
-      if (write != 0) {
+      if (write !== 0) {
         this.winRate = parseInt(success / write * 100);
       }
-      if (write == 0) {
+      if (write === 0) {
         rankingInd = 0;
-      } else if (success == 0) {
+      } else if (success === 0) {
         rankingInd = 0;
-      } else if (success < 20) {
-        rankingInd = 1;
       } else if (success > 20) {
         if (this.winRate < ratio * 2) {
           rankingInd = 1;

@@ -56,6 +56,19 @@
   border-radius: 10rpx;
   box-shadow: #555 0px 1px 2px 0px;
 }
+.poemList .formMask .form .title.data-v-3d8a09be {
+  text-align: center;
+  border-radius: 20rpx;
+  box-shadow: #555 0px 2px 4px 1px;
+  color: #5ac725;
+  background-color: #f5fff0;
+  width: 250rpx;
+  margin: 0 auto;
+  padding: 20rpx 20rpx;
+  font-size: 32rpx;
+  margin-top: 40rpx;
+  margin-bottom: 60rpx;
+}
 .poemList .formMask .form .btns.data-v-3d8a09be {
   display: flex;
   align-items: center;

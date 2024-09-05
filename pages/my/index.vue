@@ -218,15 +218,13 @@ export default {
         success,
         error,
       }
-      if (write != 0) {
+      if (write !== 0) {
         this.winRate = parseInt(success / write * 100)
       }
-      if (write == 0) {
+      if (write === 0) {
         rankingInd = 0
-      } else if (success == 0) {
+      } else if (success === 0) {
         rankingInd = 0
-      } else if (success < 20) {
-        rankingInd = 1
       } else if (success > 20) {
         if (this.winRate < ratio * 2) {
           rankingInd = 1
