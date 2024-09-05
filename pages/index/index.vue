@@ -150,7 +150,7 @@ export default {
     const me = this;
     setTimeout(() => {
       me.init();
-    }, 10);
+    }, 100);
   },
 
   onShow() {

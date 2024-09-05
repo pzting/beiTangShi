@@ -245,7 +245,7 @@ var _default = {
     var me = this;
     setTimeout(function () {
       me.init();
-    }, 10);
+    }, 100);
   },
   onShow: function onShow() {
     // Data.poem = [...Data.poem, this.poemList]
